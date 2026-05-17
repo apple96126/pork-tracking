@@ -256,6 +256,47 @@ for col in ['A','B','C','D','E','F','G','H','I','J','K','L']:
 excel_data = io.BytesIO()
 wb.save(excel_data)
 excel_data.seek(0)
+# =================【Excel 報表建立】=================
+wb = Workbook()
+ws = wb.active
+ws.title = "加工肉品追蹤追溯表"
+
+# 🌟 A4 紙張設定（用數字代碼）
+ws.page_setup.paperSize = 9   # A4
+ws.page_setup.fitToPage = True
+ws.page_setup.fitToWidth = 1
+ws.page_setup.fitToHeight = 0
+
+ws.page_margins.left = 0.5
+ws.page_margins.right = 0.5
+ws.page_margins.top = 0.75
+ws.page_margins.bottom = 0.75
+ws.page_margins.header = 0.3
+ws.page_margins.footer = 0.3
+
+# 依序動態向下建立大圖格子
+current_row = 10
+current_row = insert_large_photo_block(
+    ws,
+    "📷 項目一：產品包裝 + QR Code 截圖",
+    uploaded_image_files + [uploaded_qr_screenshot_1, uploaded_qr_screenshot_2],
+    current_row
+)
+current_row = insert_large_photo_block(
+    ws,
+    "📄 項目二：進貨單據 / 銷貨單收據證明",
+    uploaded_receipt_file,
+    current_row
+)
+
+# 調整固定欄寬
+for col in ['A','B','C','D','E','F','G','H','I','J','K','L']:
+    ws.column_dimensions[col].width = 11
+
+# =================【存檔 + 下載按鈕】=================
+excel_data = io.BytesIO()
+wb.save(excel_data)
+excel_data.seek(0)
 
 st.download_button(
     label="📥 下載 Excel 報表",
@@ -263,3 +304,5 @@ st.download_button(
     file_name=f"加工肉品追蹤追溯表_{selected_sku_code}.xlsx",
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     use_container_width=True
+)
+
