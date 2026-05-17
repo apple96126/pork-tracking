@@ -18,7 +18,7 @@ def style_range(ws, cell_range, font=None, alignment=None, fill=None, border=Non
             if fill: cell.fill = fill
             if border: cell.border = border
 
-# 💡 修正後：移除 pd 的相依性，純使用 Python 內建的 date 進行精準格式化
+# 輔助函數：將日期格式化為 YYYY/M/D 斜線格式 (移除月份與日期的前導零)
 def format_date_slash(dt):
     if isinstance(dt, date):
         return f"{dt.year}/{dt.month}/{dt.day}"
@@ -36,7 +36,7 @@ with col2:
     supplier = st.text_input("3. 供應商", value="香里食品企業股份有限公司")
     in_date = st.date_input("4. 進貨日", value=date.today())
 
-# 隱藏與留空變數設定：網頁不顯示，且 Excel 內全部留空 ""
+# 📢 隱藏與留空變數設定：網頁不顯示，且 Excel 內全部留空 ""
 slaughter_date = ""  
 slaughter_unit = ""  
 meat_type = ""       
@@ -44,7 +44,7 @@ cut_date = ""
 drugs_check = ""     
 bio_check = ""       
 
-# 加工日期
+# 加工日期仍留在網頁上供使用者調整
 st.write("---")
 col3, col4 = st.columns(2)
 with col3:
@@ -114,8 +114,9 @@ labels_v1 = [
 for lbl_rng, lbl_txt, val_rng, val_txt in labels_v1:
     ws.merge_cells(lbl_rng)
     ws.merge_cells(val_rng)
-    ws[lbl_rng.split(':')] = lbl_txt  
-    ws[val_rng.split(':')] = val_txt  
+    # 🌟 核心修正：加上 [0] 確保只指派給合併儲存格的左上角第一格，100% 解決 TypeError
+    ws[lbl_rng.split(':')[0]] = lbl_txt  
+    ws[val_rng.split(':')[0]] = val_txt  
     style_range(ws, lbl_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     style_range(ws, val_rng, font=font_body, alignment=align_center, border=border_all)
 ws.row_dimensions.height = 25
@@ -144,7 +145,7 @@ else:
     ws['A5'].font = font_body
     ws['A5'].alignment = align_center
 
-# 區塊三：原料肉資料 
+# 區塊三：原料肉資料 (5~10項全部留白)
 ws.merge_cells('A6:L6')
 ws['A6'] = "原料肉資料"
 style_range(ws, 'A6:L6', font=font_section, alignment=align_center, fill=fill_gray, border=border_all)
@@ -156,8 +157,9 @@ col_pairs = [('A7:B7','A8:B8'), ('C7:D7','C8:D8'), ('E7:F7','E8:F8'), ('G7:H7','
 for i, (h_rng, v_rng) in enumerate(col_pairs):
     ws.merge_cells(h_rng)
     ws.merge_cells(v_rng)
-    ws[h_rng.split(':')] = headers_meat[i]  
-    ws[v_rng.split(':')] = values_meat[i]  
+    # 🌟 核心修正：加上 [0] 精準寫入合併格子起點
+    ws[h_rng.split(':')[0]] = headers_meat[i]  
+    ws[v_rng.split(':')[0]] = values_meat[i]  
     style_range(ws, h_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     style_range(ws, v_rng, font=font_body, alignment=align_center, border=border_all)
 
@@ -181,8 +183,9 @@ labels_v4 = [
 for lbl_rng, lbl_txt, val_rng, val_txt in labels_v4:
     ws.merge_cells(lbl_rng)
     ws.merge_cells(val_rng)
-    ws[lbl_rng.split(':')] = lbl_txt  
-    ws[val_rng.split(':')] = val_txt  
+    # 🌟 核心修正：加上 [0] 精準寫入合併格子起點
+    ws[lbl_rng.split(':')[0]] = lbl_txt  
+    ws[val_rng.split(':')[0]] = val_txt  
     style_range(ws, lbl_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     style_range(ws, val_rng, font=font_body, alignment=align_center, border=border_all)
 ws.row_dimensions.height = 25
