@@ -1,7 +1,5 @@
 import streamlit as st
 import io
-import os
-import pandas as pd
 from datetime import date
 from PIL import Image as PILImage
 from openpyxl import Workbook
@@ -23,16 +21,21 @@ with col1:
 
 with col2:
     slaughter_date = st.text_input("5. 屠宰日期", value="12月18日")
-    slaughter_unit = st.text_input("6. 屠宰單位", value="南投縣農產運銷股份有限公司")
     meat_type = st.text_input("7. 原料肉名稱", value="後腿肉")
     cut_date = st.text_input("8. 原料肉分切日期", value="12月19日")
 
-# 檢驗與加工額外欄位
+# 📢 隱藏欄位設定：網頁不顯示，直接設為固定文字變數
+slaughter_unit = "南投縣農產運銷股份有限公司"
+drugs_check = "乙型受體素、鹽酸克倫特羅、抗生物質"
+bio_check = "總生菌數"
+
+# 加工日期仍留在網頁上供使用者調整
 st.write("---")
-drugs_check = st.text_input("9. 動物用藥檢驗項目", value="乙型受體素、鹽酸克倫特羅、抗生物質")
-bio_check = st.text_input("10. 微生物檢驗", value="總生菌數")
-make_date = st.date_input("11. 製造日期", value=date(2025, 12, 20))
-valid_date = st.date_input("12. 有效日期", value=date(2026, 12, 19))
+col3, col4 = st.columns(2)
+with col3:
+    make_date = st.date_input("11. 製造日期", value=date(2025, 12, 20))
+with col4:
+    valid_date = st.date_input("12. 有效日期", value=date(2026, 12, 19))
 
 # =================【2. 📸 產品包裝圖示上傳】=================
 st.write("---")
@@ -47,8 +50,8 @@ if upload_method == "📷 用手機直接拍照":
 else:
     uploaded_image_file = st.file_uploader("請選擇肉品包裝照片：", type=["jpg", "jpeg", "png"])
 
-# ================= ================= =================
-# 輔助函數：快速格式化儲存格區域（定義在最外層，確保不會有語法衝突）
+# ===================================================
+# 輔助函數：快速格式化儲存格區域
 def style_range(ws, cell_range, font=None, alignment=None, fill=None, border=None):
     for row in ws[cell_range]:
         for cell in row:
@@ -146,7 +149,7 @@ if st.button("🚀 匯出完美還原 Excel 報表", use_container_width=True):
     ws['A9'] = "產品加工資料"
     style_range(ws, 'A9:L9', font=font_section, alignment=align_center, fill=fill_gray, border=border_all)
 
-    # 🌟 這裡完美將產品規格、批號、數量、備註留空 ""
+    # 產品規格、批號、數量、備註維持留空 ""
     labels_v4 = [
         ('A10:B10', '產品規格', 'C10:D10', ""),
         ('E10:F10', '製造日期', 'G10:H10', str(make_date)),
@@ -178,4 +181,4 @@ if st.button("🚀 匯出完美還原 Excel 報表", use_container_width=True):
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         use_container_width=True
     )
-    st.success("🎉 修正成功！請點擊上方按鈕下載。")
+    st.success("🎉 網頁已精簡！請點擊上方按鈕下載最新報表。")
