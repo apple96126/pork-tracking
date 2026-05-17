@@ -107,7 +107,6 @@ if need_qr_flow:
         uploaded_qr_screenshot_2 = st.file_uploader("請上傳次頁進階資訊截圖：", type=["jpg", "jpeg", "png"], key="qr_snap2")
 
 # =================【3. 後端 Excel 多圖嵌入與一鍵下載邏輯】=================
-# =================【3. 後端 Excel 多圖嵌入與一鍵下載邏輯】=================
 st.write("---")
 
 wb = Workbook()
@@ -150,8 +149,8 @@ labels_v1 = [
 for lbl_rng, lbl_txt, val_rng, val_txt in labels_v1:
     ws.merge_cells(lbl_rng)
     ws.merge_cells(val_rng)
-    ws[lbl_rng.split(':')] = lbl_txt  
-    ws[val_rng.split(':')] = val_txt  
+    ws[lbl_rng.split(':')[0]] = lbl_txt  # 🌟 修正：改回取第0個元素，傳入正確的字串索引
+    ws[val_rng.split(':')[0]] = val_txt  # 🌟 修正：改回取第0個元素，傳入正確的字串索引
     style_range(ws, lbl_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     style_range(ws, val_rng, font=font_body, alignment=align_center, border=border_all)
 ws.row_dimensions.height = 24
@@ -163,7 +162,7 @@ ws['A4'] = "產品包裝圖示 (包含特定品項之 QR Code 履歷查驗與進
 style_range(ws, 'A4:L4', font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
 ws.row_dimensions.height = 20
 
-# 🌟 核心改動：將 A5:L5 全部合併為一整欄超大格子，徹底拔除中間所有的垂直線！
+# 將 A5:L5 全部合併為一整欄超大格子，徹底拔除中間所有的垂直線！
 ws.merge_cells('A5:L5')
 style_range(ws, 'A5:L5', border=border_all)
 ws.row_dimensions.height = 247.50  
@@ -179,8 +178,7 @@ if uploaded_qr_screenshot_2 is not None:
     all_images_to_pack.append(uploaded_qr_screenshot_2)
 
 if all_images_to_pack:
-    # 🌟 透過精算 X 軸偏移量，讓照片在 A5 大格子內由左至右漂亮橫向排開
-    # 直向 A4 總寬下，130 像素寬的圖片平分最為清晰且剛好
+    # 透過精算 X 軸偏移量，讓照片在 A5 大格子內由左至右漂亮橫向排開
     for idx, img_file in enumerate(all_images_to_pack[:6]):
         pil_img = PILImage.open(img_file)
         pil_img.thumbnail((130, 310))
@@ -191,12 +189,10 @@ if all_images_to_pack:
         
         img_obj = OpenpyxlImage(img_stream)
         
-        # 使用 openpyxl 的 OneCellAnchor 定位：
-        # 錨定在 A5 格子，透過索引 idx 來平移每張圖片的橫向起點 (X 軸)
-        # 每張圖間隔 145 像素 (包含圖寬 130 + 微調留白 15)，左邊留白 20 像素
+        # 使用 openpyxl 的 OneCellAnchor 定位，並手動計算橫向起點 (X 軸)
         img_obj.anchor = "A5"
         img_obj.drawing.left = 20 + (idx * 145)
-        img_obj.drawing.top = 10  # 頂部稍微留白，看起來更精緻
+        img_obj.drawing.top = 10  
         
         ws.add_image(img_obj)
 else:
@@ -216,8 +212,8 @@ col_pairs = [('A7:B7','A8:B8'), ('C7:D7','C8:D8'), ('E7:F7','E8:F8'), ('G7:H7','
 for i, (h_rng, v_rng) in enumerate(col_pairs):
     ws.merge_cells(h_rng)
     ws.merge_cells(v_rng)
-    ws[h_rng.split(':')] = headers_meat[i]  
-    ws[v_rng.split(':')] = values_meat[i]  
+    ws[h_rng.split(':')[0]] = headers_meat[i]  # 🌟 修正：改回取第0個元素
+    ws[v_rng.split(':')[0]] = values_meat[i]  # 🌟 修正：改回取第0個元素
     style_range(ws, h_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     style_range(ws, v_rng, font=font_body, alignment=align_center, border=border_all)
 ws.row_dimensions.height = 24
@@ -238,8 +234,8 @@ labels_v4 = [
 for lbl_rng, lbl_txt, val_rng, val_txt in labels_v4:
     ws.merge_cells(lbl_rng)
     ws.merge_cells(val_rng)
-    ws[lbl_rng.split(':')] = lbl_txt  
-    ws[val_rng.split(':')] = val_txt  
+    ws[lbl_rng.split(':')[0]] = lbl_txt  # 🌟 修正：改回取第0個元素
+    ws[val_rng.split(':')[0]] = val_txt  # 🌟 修正：改回取第0個元素
     style_range(ws, lbl_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     style_range(ws, val_rng, font=font_body, alignment=align_center, border=border_all)
 ws.row_dimensions.height = 24
