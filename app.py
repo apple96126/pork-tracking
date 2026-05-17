@@ -218,10 +218,13 @@ def insert_large_photo_block(ws, title_text, file_objects, row_start):
         for idx, f in enumerate(files):
             if f is not None:
                 pil_img = PILImage.open(f)
-                pil_img.thumbnail((250, 250))
+                pil_img = PILImage.open(f)
+                # 保持原始解析度，不縮小
                 img_stream = io.BytesIO()
                 pil_img.save(img_stream, format='PNG')
                 img_stream.seek(0)
+                ws.add_image(OpenpyxlImage(img_stream), f'{start_col}{img_row}')
+
 
                 # 計算起始欄位
                 start_col = chr(ord('A') + idx * col_span)
