@@ -16,17 +16,17 @@ col1, col2 = st.columns(2)
 with col1:
     part_no = st.selectbox("1. 料號", ["ME-320039", "ME-320040"])
     product_name = st.text_input("2. 品名", value="1.2後腿絞肉206g")
+
+with col2:
     supplier = st.text_input("3. 供應商", value="香里食品企業股份有限公司")
     in_date = st.date_input("4. 進貨日", value=date(2025, 12, 26))
 
-with col2:
-    slaughter_date = st.text_input("5. 屠宰日期", value="12月18日")
-    meat_type = st.text_input("7. 原料肉名稱", value="後腿肉")
-    cut_date = st.text_input("8. 原料肉分切日期", value="12月19日")
+# 📢 隱藏與留空變數設定：網頁不顯示，且 Excel 內全部留空 ""
+slaughter_date = ""  # 5. 屠宰日期 留空
+slaughter_unit = ""  # 6. 屠宰單位 留空
+meat_type = ""       # 7. 原料肉名稱 留空
+cut_date = ""        # 8. 原料肉分切日期 留空
 
-# 📢 隱藏欄位與留空設定：網頁不顯示
-# 遵照指示：屠宰單位在 Excel 內也直接留空 ""
-slaughter_unit = "" 
 drugs_check = "乙型受體素、鹽酸克倫特羅、抗生物質"
 bio_check = "總生菌數"
 
@@ -132,6 +132,7 @@ if st.button("🚀 匯出完美還原 Excel 報表", use_container_width=True):
     ws['A6'] = "原料肉資料"
     style_range(ws, 'A6:L6', font=font_section, alignment=align_center, fill=fill_gray, border=border_all)
 
+    # 🌟 5、6、7、8 項目的欄位與格式都保留，但對應的 values_meat 變數內容都是 "" 空字串
     headers_meat = ['屠宰日期', '屠宰單位', '原料肉名稱', '原料肉分切日期', '動物用藥檢驗', '微生物檢驗']
     values_meat = [slaughter_date, slaughter_unit, meat_type, cut_date, drugs_check, bio_check]
     col_pairs = [('A7:B7','A8:B8'), ('C7:D7','C8:D8'), ('E7:F7','E8:F8'), ('G7:H7','G8:H8'), ('I7:J7','I8:J8'), ('K7:L7','K8:L8')]
@@ -181,4 +182,4 @@ if st.button("🚀 匯出完美還原 Excel 報表", use_container_width=True):
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         use_container_width=True
     )
-    st.success("🎉 報表優化成功！請點擊上方按鈕下載。")
+    st.success("🎉 網頁優化成功！請點擊上方按鈕下載。")
