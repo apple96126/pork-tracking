@@ -30,14 +30,14 @@ with col2:
     supplier = st.text_input("3. 供應商", value="香里食品企業股份有限公司")
     in_date = st.date_input("4. 進貨日", value=date(2025, 12, 26))
 
-# 📢 隱藏與留空變數設定：網頁不顯示，且 Excel 內全部留空 ""
-slaughter_date = ""  
-slaughter_unit = ""  
-meat_type = ""       
-cut_date = ""        
-
-drugs_check = "乙型受體素、鹽酸克倫特羅、抗生物質"
-bio_check = "總生菌數"
+# 📢 隱藏與留空變數設定：網頁不顯示
+# 依照指示：將所有檢驗與原料肉欄位在 Excel 內全部留空 ""
+slaughter_date = ""  # 5. 屠宰日期 留空
+slaughter_unit = ""  # 6. 屠宰單位 留空
+meat_type = ""       # 7. 原料肉名稱 留空
+cut_date = ""        # 8. 原料肉分切日期 留空
+drugs_check = ""     # 9. 動物用藥檢驗 留空 🌟(最新修正)
+bio_check = ""       # 10. 微生物檢驗 留空 🌟(最新修正)
 
 # 加工日期仍留在網頁上供使用者調整
 st.write("---")
@@ -106,8 +106,8 @@ labels_v1 = [
 for lbl_rng, lbl_txt, val_rng, val_txt in labels_v1:
     ws.merge_cells(lbl_rng)
     ws.merge_cells(val_rng)
-    ws[lbl_rng.split(':')[0]] = lbl_txt  # 🌟 修正：精準寫入左上角儲存格
-    ws[val_rng.split(':')[0]] = val_txt  # 🌟 修正：精準寫入左上角儲存格
+    ws[lbl_rng.split(':')[0]] = lbl_txt  
+    ws[val_rng.split(':')[0]] = val_txt  
     style_range(ws, lbl_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     style_range(ws, val_rng, font=font_body, alignment=align_center, border=border_all)
 ws.row_dimensions.height = 25
@@ -136,7 +136,7 @@ else:
     ws['A5'].font = font_body
     ws['A5'].alignment = align_center
 
-# 區塊三：原料肉資料 (5~8項空字串)
+# 區塊三：原料肉資料 (5~10項在後端全部設為空字串，匯出即為空白格子)
 ws.merge_cells('A6:L6')
 ws['A6'] = "原料肉資料"
 style_range(ws, 'A6:L6', font=font_section, alignment=align_center, fill=fill_gray, border=border_all)
@@ -148,8 +148,8 @@ col_pairs = [('A7:B7','A8:B8'), ('C7:D7','C8:D8'), ('E7:F7','E8:F8'), ('G7:H7','
 for i, (h_rng, v_rng) in enumerate(col_pairs):
     ws.merge_cells(h_rng)
     ws.merge_cells(v_rng)
-    ws[h_rng.split(':')[0]] = headers_meat[i]  # 🌟 修正：精準寫入左上角儲存格
-    ws[v_rng.split(':')[0]] = values_meat[i]  # 🌟 修正：精準寫入左上角儲存格
+    ws[h_rng.split(':')[0]] = headers_meat[i]  
+    ws[v_rng.split(':')[0]] = values_meat[i]  
     style_range(ws, h_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     style_range(ws, v_rng, font=font_body, alignment=align_center, border=border_all)
 
@@ -169,8 +169,8 @@ labels_v4 = [
 for lbl_rng, lbl_txt, val_rng, val_txt in labels_v4:
     ws.merge_cells(lbl_rng)
     ws.merge_cells(val_rng)
-    ws[lbl_rng.split(':')[0]] = lbl_txt  # 🌟 修正：精準寫入左上角儲存格
-    ws[val_rng.split(':')[0]] = val_txt  # 🌟 修正：精準寫入左上角儲存格
+    ws[lbl_rng.split(':')[0]] = lbl_txt  
+    ws[val_rng.split(':')[0]] = val_txt  
     style_range(ws, lbl_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     style_range(ws, val_rng, font=font_body, alignment=align_center, border=border_all)
 ws.row_dimensions.height = 25
