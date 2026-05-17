@@ -1,7 +1,80 @@
+import streamlit as st
+import io
+from datetime import date
+from PIL import Image as PILImage
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+from openpyxl.drawing.image import Image as OpenpyxlImage
+
+st.set_page_config(page_title="肉品追溯系統", layout="centered")
+st.title("🐖 豬肉追溯系統 - 完美雲端上線版")
+
+# 輔助函數：快速格式化儲存格區域（移至最頂端定義）
+def style_range(ws, cell_range, font=None, alignment=None, fill=None, border=None):
+    for row in ws[cell_range]:
+        for cell in row:
+            if font: cell.font = font
+            if alignment: cell.alignment = alignment
+            if fill: cell.fill = fill
+            if border: cell.border = border
+
+# =================【1. 前端網頁輸入介面】=================
+st.subheader("📝 請填寫追溯表資料")
+col1, col2 = st.columns(2)
+
+with col1:
+    part_no = st.selectbox("1. 料號", ["ME-320039", "ME-320040"])
+    product_name = st.text_input("2. 品名", value="1.2後腿絞肉206g")
+
+with col2:
+    supplier = st.text_input("3. 供應商", value="香里食品企業股份有限公司")
+    in_date = st.date_input("4. 進貨日", value=date(2025, 12, 26))
+
+# 📢 隱藏與留空變數設定：網頁不顯示，且 Excel 內全部留空 ""
+slaughter_date = ""  
+slaughter_unit = ""  
+meat_type = ""       
+cut_date = ""        
+
+drugs_check = "乙型受體素、鹽酸克倫特羅、抗生物質"
+bio_check = "總生菌數"
+
+# 加工日期仍留在網頁上供使用者調整
+st.write("---")
+col3, col4 = st.columns(2)
+with col3:
+    make_date = st.date_input("11. 製造日期", value=date(2025, 12, 20))
+with col4:
+    valid_date = st.date_input("12. 有效日期", value=date(2026, 12, 19))
+
+# =================【2. 📸 產品包裝圖示上傳】=================
+st.write("---")
+st.subheader("📸 1. 產品包裝圖示照片")
+
+upload_method_1 = st.radio("選擇第一張相片來源：", ["📷 用手機直接拍照", "📁 從相簿選取照片"], horizontal=True, key="photo1_method")
+uploaded_image_file = None
+
+if upload_method_1 == "📷 用手機直接拍照":
+    uploaded_image_file = st.camera_input("請對準肉品標籤或外包裝拍照：", key="photo1_cam")
+else:
+    uploaded_image_file = st.file_uploader("請選擇肉品包裝照片：", type=["jpg", "jpeg", "png"], key="photo1_file")
+
+# =================【3. 📄 銷貨單/進貨單據上傳】=================
+st.write("---")
+st.subheader("📄 2. 進貨單據 / 銷貨單收據照片")
+
+upload_method_2 = st.radio("選擇第二張相片來源：", ["📷 用手機直接拍照", "📁 從相簿選取照片"], horizontal=True, key="photo2_method")
+uploaded_receipt_file = None
+
+if upload_method_2 == "📷 用手機直接拍照":
+    uploaded_receipt_file = st.camera_input("請對準銷貨單/進貨收據拍照：", key="photo2_cam")
+else:
+    uploaded_receipt_file = st.file_uploader("請選擇單據照片：", type=["jpg", "jpeg", "png"], key="photo2_file")
+
 # =================【4. 後端 Excel 雙圖嵌入與一鍵下載邏輯】=================
 st.write("---")
 
-# 1. 直接在記憶體內先算好 Excel 檔案的資料
+# 直接在背景算好 Excel 檔案的資料
 wb = Workbook()
 ws = wb.active
 ws.title = "加工肉品追蹤追溯表"
@@ -129,13 +202,12 @@ else:
 for col in ['A','B','C','D','E','F','G','H','I','J','K','L']:
     ws.column_dimensions[col].width = 11
 
-# 2. 將產出的 Excel 包裝進資料流
+# 將產出的 Excel 包裝進資料流
 excel_data = io.BytesIO()
 wb.save(excel_data)
 excel_data.seek(0)
 
-# 📢 3. 修改這裡：直接擺放 st.download_button 
-# 這樣網頁畫面上就只有這一個按鈕，同仁點擊後「一鍵立刻下載 Excel 檔案」！
+# 一鍵直接下載按鈕（無多餘的綠色提示字）
 st.download_button(
     label="📥 下載 Excel 報表",
     data=excel_data,
