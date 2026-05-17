@@ -212,7 +212,7 @@ if st.button("🚀 匯出完美還原 Excel 報表", use_container_width=True):
     excel_data.seek(0)
 
     st.download_button(
-        label="📥 下載內嵌照片之完美排版 Excel 檔",
+        label="📥 下載 Excel 檔",
         data=excel_data,
         file_name=f"加工肉品追蹤追溯表_{part_no}.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
