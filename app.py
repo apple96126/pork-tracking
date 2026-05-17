@@ -61,7 +61,7 @@ available_skus = PORK_HIERARCHY[supplier]
 sku_options = [f"{sku} - {info['品名']}" for sku, info in available_skus.items()]
 selected_sku_string = st.selectbox("2. 請選取產品品項", sku_options)
 
-selected_sku_code = selected_sku_string.split(" - ")
+selected_sku_code = selected_sku_string.split(" - ")[0]
 product_name = available_skus[selected_sku_code]["品名"]
 need_qr_flow = available_skus[selected_sku_code].get("需要QR", False)
 
