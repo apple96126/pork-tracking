@@ -7,7 +7,7 @@ from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from openpyxl.drawing.image import Image as OpenpyxlImage
 
 st.set_page_config(page_title="肉品追溯系統", layout="centered")
-st.title("🐖 豬肉追溯系統 - 完美雲端上線版")
+st.title("🐖 豬肉追溯系統")
 
 # 輔助函數：快速格式化儲存格區域
 def style_range(ws, cell_range, font=None, alignment=None, fill=None, border=None):
@@ -18,22 +18,51 @@ def style_range(ws, cell_range, font=None, alignment=None, fill=None, border=Non
             if fill: cell.fill = fill
             if border: cell.border = border
 
-# 輔助函數：將日期格式化為 YYYY/M/D 斜線格式 (移除月份與日期的前導零)
+# 輔助函數：將日期格式化為 YYYY/M/D 斜線格式
 def format_date_slash(dt):
     if isinstance(dt, date):
         return f"{dt.year}/{dt.month}/{dt.day}"
     return str(dt)
 
+# =================【🥩 瓦城泰統肉品核心主資料庫 🥩】=================
+# 未來如果有新增料號，直接模仿底下的格式在括號內增加即可！
+PORK_DATABASE = {
+    "ME-320039": {"品名": "1.2後腿絞肉206g", "供應商": "香里食品企業股份有限公司"},
+    "ME-320040": {"品名": "預設肉品項目206g", "供應商": "香里食品企業股份有限公司"},
+    "ME-320035": {"品名": "板油絞(4公斤)", "供應商": "弘飛"},
+    "ME-320024": {"品名": "買賣類-豬上排(單隻)", "供應商": "弘飛"},
+    "ME-320023": {"品名": "腩排丁", "供應商": "弘飛"},
+    "ME-300064": {"品名": "買賣類-豬炒片", "供應商": "弘飛"},
+    "ME-300046": {"品名": "去皮五花肉片", "供應商": "弘飛"},
+    "ME-300062": {"品名": "帶骨里肌肉片", "供應商": "弘飛"},
+    "ME-300045": {"品名": "附皮肥肉丁", "供應商": "泰安"},
+    "ME-320004": {"品名": "帶皮五花肉片", "供應商": "泰安"},
+    "ME-320018": {"品名": "豬皮", "供應商": "香里"},
+    "ME-330036": {"品名": "中油角(1.5)", "供應商": "香里"},
+    "ME-320043": {"品名": "梅花肉丁", "供應商": "香里"},
+    "ME-330048": {"品名": "中油角", "供應商": "香里"}
+}
+
 # =================【1. 前端網頁輸入介面】=================
 st.subheader("📝 請填寫追溯表資料")
+
+# 1. 現場同仁優先選取「料號」
+sku_list = list(PORK_DATABASE.keys())
+part_no = st.selectbox("1. 請選取產品料號", sku_list)
+
+# 💡 自動比對連動核心邏輯：從資料庫撈出對應的固定品名與廠商
+auto_product_name = PORK_DATABASE[part_no]["品名"]
+auto_supplier = PORK_DATABASE[part_no]["供應商"]
+
 col1, col2 = st.columns(2)
 
 with col1:
-    part_no = st.selectbox("1. 料號", ["ME-320039", "ME-320040"])
-    product_name = st.text_input("2. 品名", value="1.2後腿絞肉206g")
+    # 網頁上的品名與供應商欄位會「自動帶出」預設值，但保留彈性，現場若有特殊狀況依然可以手動微調！
+    product_name = st.text_input("2. 品名 (已由料號自動連動)", value=auto_product_name)
+    st.info(f"💡 當前自動帶出品名：{auto_product_name}")
 
 with col2:
-    supplier = st.text_input("3. 供應商", value="香里食品企業股份有限公司")
+    supplier = st.text_input("3. 供應商 (已由料號自動連動)", value=auto_supplier)
     in_date = st.date_input("4. 進貨日", value=date.today())
 
 # 📢 隱藏與留空變數設定：網頁不顯示，且 Excel 內全部留空 ""
@@ -114,7 +143,6 @@ labels_v1 = [
 for lbl_rng, lbl_txt, val_rng, val_txt in labels_v1:
     ws.merge_cells(lbl_rng)
     ws.merge_cells(val_rng)
-    # 🌟 核心修正：加上 [0] 確保只指派給合併儲存格的左上角第一格，100% 解決 TypeError
     ws[lbl_rng.split(':')[0]] = lbl_txt  
     ws[val_rng.split(':')[0]] = val_txt  
     style_range(ws, lbl_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
@@ -157,7 +185,6 @@ col_pairs = [('A7:B7','A8:B8'), ('C7:D7','C8:D8'), ('E7:F7','E8:F8'), ('G7:H7','
 for i, (h_rng, v_rng) in enumerate(col_pairs):
     ws.merge_cells(h_rng)
     ws.merge_cells(v_rng)
-    # 🌟 核心修正：加上 [0] 精準寫入合併格子起點
     ws[h_rng.split(':')[0]] = headers_meat[i]  
     ws[v_rng.split(':')[0]] = values_meat[i]  
     style_range(ws, h_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
@@ -183,7 +210,6 @@ labels_v4 = [
 for lbl_rng, lbl_txt, val_rng, val_txt in labels_v4:
     ws.merge_cells(lbl_rng)
     ws.merge_cells(val_rng)
-    # 🌟 核心修正：加上 [0] 精準寫入合併格子起點
     ws[lbl_rng.split(':')[0]] = lbl_txt  
     ws[val_rng.split(':')[0]] = val_txt  
     style_range(ws, lbl_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
