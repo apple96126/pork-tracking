@@ -24,8 +24,9 @@ with col2:
     meat_type = st.text_input("7. 原料肉名稱", value="後腿肉")
     cut_date = st.text_input("8. 原料肉分切日期", value="12月19日")
 
-# 📢 隱藏欄位設定：網頁不顯示，直接設為固定文字變數
-slaughter_unit = "南投縣農產運銷股份有限公司"
+# 📢 隱藏欄位與留空設定：網頁不顯示
+# 遵照指示：屠宰單位在 Excel 內也直接留空 ""
+slaughter_unit = "" 
 drugs_check = "乙型受體素、鹽酸克倫特羅、抗生物質"
 bio_check = "總生菌數"
 
@@ -107,7 +108,7 @@ if st.button("🚀 匯出完美還原 Excel 報表", use_container_width=True):
     style_range(ws, 'A4:L4', font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     ws.row_dimensions.height = 20
 
-    # 包裝圖示圖片置放儲格（A5:L5 大格子）
+    # 包裝圖示圖片置放儲存格（A5:L5 大格子）
     ws.merge_cells('A5:L5')
     style_range(ws, 'A5:L5', border=border_all)
     ws.row_dimensions.height = 180  
@@ -180,4 +181,4 @@ if st.button("🚀 匯出完美還原 Excel 報表", use_container_width=True):
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         use_container_width=True
     )
-    st.success("🎉 網頁優化成功！請點擊上方按鈕下載。")
+    st.success("🎉 報表優化成功！請點擊上方按鈕下載。")
