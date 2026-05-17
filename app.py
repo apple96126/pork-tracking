@@ -275,7 +275,7 @@ ws = wb.active
 ws.title = "加工肉品追蹤追溯表"
 
 # 🌟 A4 紙張設定
-ws.page_setup.paperSize = ws.page_setup.PAPERSIZE_A4
+ws.page_setup.paperSize = 9   # A4
 ws.page_setup.fitToPage = True
 ws.page_setup.fitToWidth = 1
 ws.page_setup.fitToHeight = 0
