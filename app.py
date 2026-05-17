@@ -266,28 +266,42 @@ excel_data = io.BytesIO()
 wb.save(excel_data)
 excel_data.seek(0)
 
+# =================【3. 後端 Excel 高解析縱向自動拉開邏輯】=================
+st.write("---")
+
+# 先建立 Workbook 和 Worksheet
+wb = Workbook()
+ws = wb.active
+ws.title = "加工肉品追蹤追溯表"
+
+# 🌟 A4 紙張設定
+ws.page_setup.paperSize = ws.page_setup.PAPERSIZE_A4
+ws.page_setup.fitToPage = True
+ws.page_setup.fitToWidth = 1
+ws.page_setup.fitToHeight = 0
+
+# 邊界設定（單位：英吋）
+ws.page_margins.left = 0.5
+ws.page_margins.right = 0.5
+ws.page_margins.top = 0.75
+ws.page_margins.bottom = 0.75
+ws.page_margins.header = 0.3
+ws.page_margins.footer = 0.3
+
+# ...這裡繼續你的 Excel 報表內容（標題、表格、照片插入等）
+
+# 存成 BytesIO
+excel_data = io.BytesIO()
+wb.save(excel_data)
+excel_data.seek(0)
+
+# 最後建立下載按鈕
 st.download_button(
     label="📥 下載 Excel 報表",
     data=excel_data,
     file_name=f"加工肉品追蹤追溯表_{selected_sku_code}.xlsx",
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "加工肉品追蹤追溯表"
-    
-    # 🌟 A4 紙張設定
-    ws.page_setup.paperSize = ws.page_setup.PAPERSIZE_A4
-    ws.page_setup.fitToPage = True
-    ws.page_setup.fitToWidth = 1
-    ws.page_setup.fitToHeight = 0
-    
-    # 邊界設定（單位：英吋）
-    ws.page_margins.left = 0.5
-    ws.page_margins.right = 0.5
-    ws.page_margins.top = 0.75
-    ws.page_margins.bottom = 0.75
-    ws.page_margins.header = 0.3
-    ws.page_margins.footer = 0.3
-
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     use_container_width=True
+)
+
 )
