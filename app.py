@@ -12,7 +12,7 @@ st.subheader("📝 請填寫追溯表資料")
 col1, col2 = st.columns(2)
 
 with col1:
-    part_no = st.selectbox("1. 料號", ["ME-320039", "ME-320040"])
+    part_no = st.selectbox("1. 料號", ["ME-320039"])
     product_name = st.text_input("2. 品名", value="1.2後腿絞肉206g")
     supplier = st.text_input("3. 供應商", value="香里食品企業股份有限公司")
     in_date = st.date_input("4. 進貨日", value=date(2025, 12, 26))
@@ -128,12 +128,32 @@ if st.button("🚀 匯出 Excel 報表", use_container_width=True):
 
     # 加工資料明細表格
     labels_v4 = [
-        ('A10:B10', '產品規格', 'C10:D10', '-'),
-        ('E10:F10', '製造日期', 'G10:H10', str(make_date)),
-        ('I10:J10', '有效日期', 'K10:L10', str(valid_date)),
-        ('A11:B11', '產品批號', 'C11:D11', '-'),
-        ('E11:F11', '生產數量', 'G11:H11', '-'),
-        ('I11:J11', '備註說明', 'K11:L11', '-')
+            # ---- 6. 區塊四：產品加工資料標題 ----
+    ws.merge_cells('A9:L9')
+    ws['A9'] = "產品加工資料"
+    style_range(ws, 'A9:L9', font=font_section, alignment=align_center, fill=fill_gray, border=border_all)
+    ws.row_dimensions.height = 22
+
+    # 📢 修改這裡：把產品規格、批號、生產數量的內容改成 "" (空字串)
+    # 這樣 Excel 匯出時，格子就會維持一格一格的空白狀態，方便其他單位手寫或補登！
+    labels_v4 = [
+        ('A10:B10', '產品規格', 'C10:D10', ""),           # 留白給其他單位
+        ('E10:F10', '製造日期', 'G10:H10', str(make_date)), # 您這邊自動帶出
+        ('I10:J10', '有效日期', 'K10:L10', str(valid_date)),# 您這邊自動帶出
+        ('A11:B11', '產品批號', 'C11:D11', ""),           # 留白給其他單位
+        ('E11:F11', '生產數量', 'G11:H11', ""),           # 留白給其他單位
+        ('I11:J11', '備註說明', 'K11:L11', "")            # 留白給其他單位
+    ]
+    for lbl_rng, lbl_txt, val_rng, val_txt in labels_v4:
+        ws.merge_cells(lbl_rng)
+        ws.merge_cells(val_rng)
+        ws[lbl_rng.split(':')] = lbl_txt
+        ws[val_rng.split(':')] = val_txt
+        style_range(ws, lbl_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
+        style_range(ws, val_rng, font=font_body, alignment=align_center, border=border_all)
+    ws.row_dimensions.height = 25
+    ws.row_dimensions.height = 25
+
     ]
     for lbl_rng, lbl_txt, val_rng, val_txt in labels_v4:
         ws.merge_cells(lbl_rng)
