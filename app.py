@@ -158,8 +158,8 @@ col_pairs = [('A5:B5','A6:B6'), ('C5:D5','C6:D6'), ('E5:F5','E6:F6'), ('G5:H5','
 for i, (h_rng, v_rng) in enumerate(col_pairs):
     ws.merge_cells(h_rng)
     ws.merge_cells(v_rng)
-    ws[h_rng.split(':')] = headers_meat[i]  
-    ws[v_rng.split(':')] = values_meat[i]  
+    ws[h_rng.split(':')[0]] = headers_meat[i]  
+    ws[v_rng.split(':')[0]] = values_meat[i]  
     style_range(ws, h_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     style_range(ws, v_rng, font=font_body, alignment=align_center, border=border_all)
 ws.row_dimensions.height = 24
