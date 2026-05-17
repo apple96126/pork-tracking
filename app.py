@@ -18,7 +18,7 @@ def style_range(ws, cell_range, font=None, alignment=None, fill=None, border=Non
             if fill: cell.fill = fill
             if border: cell.border = border
 
-# 輔助函數：將日期格式化為 YYYY/M/D 斜線格式
+# 輔助函數：將日期格式化為 YYYY/M/D 斜線格式 (移除月份與日期的前導零)
 def format_date_slash(dt):
     if isinstance(dt, date):
         return f"{dt.year}/{dt.month}/{dt.day}"
@@ -26,11 +26,11 @@ def format_date_slash(dt):
 
 # =================【🥩 瓦城泰統肉品核心主資料庫 🥩】=================
 PORK_DATABASE = {
-    "ME-320039": {"品名": "1.2後腿絞肉206g", "供應商": "香里食品企業股份有限公司", "需要QR": False},
-    "ME-320040": {"品名": "預設肉品項目206g", "供應商": "香里食品企業股份有限公司", "需要QR": False},
+    "ME-320039": {"品名": "1.2後腿絞肉206g", "供應商": "香里食品企業股份有限公司", "需要QR": True},
+    "ME-320040": {"品名": "預設肉品項目206g", "供應商": "香里食品企業股份有限公司", "需要QR": True},
     "ME-320035": {"品名": "板油絞(4公斤)", "供應商": "弘飛", "需要QR": False},
     "ME-320024": {"品名": "買賣類-豬上排(單隻)", "供應商": "弘飛", "需要QR": False},
-    "ME-320023": {"品名": "腩排丁", "供應商": "弘飛", "LowerQR": False},
+    "ME-320023": {"品名": "腩排丁", "供應商": "弘飛", "需要QR": False},
     "ME-300064": {"品名": "買賣類-豬炒片", "供應商": "弘飛", "需要QR": False},
     "ME-300046": {"品名": "去皮五花肉片", "供應商": "弘飛", "需要QR": False},
     "ME-300062": {"品名": "帶骨里肌肉片", "供應商": "弘飛", "需要QR": False},
@@ -41,6 +41,7 @@ PORK_DATABASE = {
     "ME-320043": {"品名": "梅花肉丁", "供應商": "香里", "需要QR": False},
     "ME-330048": {"品名": "中油角", "供應商": "香里", "需要QR": False},
     "ME-230002": {"品名": "雞絞肉", "供應商": "超秦企業股份有限公司", "需要QR": True}
+
 }
 
 # =================【1. 前端網頁輸入介面】=================
@@ -51,7 +52,7 @@ part_no = st.selectbox("1. 請選取產品料號", sku_list)
 
 auto_product_name = PORK_DATABASE[part_no]["品名"]
 auto_supplier = PORK_DATABASE[part_no]["供應商"]
-need_qr_flow = PORK_DATABASE[part_no].get("需要QR", False) # 💡 檢查這個產品要不要走 QR 流程
+need_qr_flow = PORK_DATABASE[part_no].get("需要QR", False)
 
 col1, col2 = st.columns(2)
 with col1:
@@ -122,8 +123,10 @@ ws['A1'].font = font_title
 ws['A1'].alignment = align_center
 ws.row_dimensions.height = 50
 
-# 區塊一：基本料號資訊
+# 將日期轉為 YYYY/M/D 斜線格式
 formatted_in_date = format_date_slash(in_date)
+
+# 區塊一：基本料號資訊
 labels_v1 = [
     ('A2:B2', '料號', 'C2:D2', part_no), ('E2:F2', '供應商', 'G2:L2', supplier),
     ('A3:B3', '品名', 'C3:D3', product_name), ('E3:F3', '進貨日', 'G3:L3', formatted_in_date)
@@ -131,8 +134,9 @@ labels_v1 = [
 for lbl_rng, lbl_txt, val_rng, val_txt in labels_v1:
     ws.merge_cells(lbl_rng)
     ws.merge_cells(val_rng)
-    ws[lbl_rng.split(':')] = lbl_txt  
-    ws[val_rng.split(':')] = val_txt  
+    # 🌟 核心修正：加上 [0] 確保只指派給合併儲存格的左上角第一格，100% 解決 TypeError
+    ws[lbl_rng.split(':')[0]] = lbl_txt  
+    ws[val_rng.split(':')[0]] = val_txt  
     style_range(ws, lbl_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     style_range(ws, val_rng, font=font_body, alignment=align_center, border=border_all)
 ws.row_dimensions.height = 25
@@ -170,8 +174,9 @@ col_pairs = [('A7:B7','A8:B8'), ('C7:D7','C8:D8'), ('E7:F7','E8:F8'), ('G7:H7','
 for i, (h_rng, v_rng) in enumerate(col_pairs):
     ws.merge_cells(h_rng)
     ws.merge_cells(v_rng)
-    ws[h_rng.split(':')] = headers_meat[i]  
-    ws[v_rng.split(':')] = values_meat[i]  
+    # 🌟 核心修正：加上 [0] 精準寫入合併格子起點
+    ws[h_rng.split(':')[0]] = headers_meat[i]  
+    ws[v_rng.split(':')[0]] = values_meat[i]  
     style_range(ws, h_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     style_range(ws, v_rng, font=font_body, alignment=align_center, border=border_all)
 
@@ -189,8 +194,9 @@ labels_v4 = [
 for lbl_rng, lbl_txt, val_rng, val_txt in labels_v4:
     ws.merge_cells(lbl_rng)
     ws.merge_cells(val_rng)
-    ws[lbl_rng.split(':')] = lbl_txt  
-    ws[val_rng.split(':')] = val_txt  
+    # 🌟 核心修正：加上 [0] 精準寫入合併格子起點
+    ws[lbl_rng.split(':')[0]] = lbl_txt  
+    ws[val_rng.split(':')[0]] = val_txt  
     style_range(ws, lbl_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     style_range(ws, val_rng, font=font_body, alignment=align_center, border=border_all)
 ws.row_dimensions.height = 25
@@ -217,18 +223,17 @@ else:
     ws['A13'].font = font_body
     ws['A13'].alignment = align_center
 
-# 🌟 區塊六：全新加開「QR Code 履歷查驗截圖區」（第 14、15 行大格子）
+# 區塊六：QR Code 履歷查驗截圖區
 ws.merge_cells('A14:L14')
 ws['A14'] = "特定品項 - QR Code 產銷履歷查驗與進階截圖證明"
 style_range(ws, 'A14:L14', font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
 ws.row_dimensions.height = 20
 
-# 為了在同一行大格子橫向塞入「兩張截圖」，我們將 A15:F15 合併放第一張，G15:L15 合併放第二張
 ws.merge_cells('A15:F15')
 ws.merge_cells('G15:L15')
 style_range(ws, 'A15:F15', border=border_all)
 style_range(ws, 'G15:L15', border=border_all)
-ws.row_dimensions.height = 240 # 給予足夠高度放置兩張截圖
+ws.row_dimensions.height = 240 
 
 # 塞入 QR 截圖 1
 if uploaded_qr_screenshot_1 is not None:
@@ -263,6 +268,7 @@ excel_data = io.BytesIO()
 wb.save(excel_data)
 excel_data.seek(0)
 
+# 一鍵直接下載按鈕
 st.download_button(
     label="📥 下載 Excel 報表",
     data=excel_data,
@@ -270,3 +276,4 @@ st.download_button(
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     use_container_width=True
 )
+
