@@ -7,7 +7,7 @@ from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from openpyxl.drawing.image import Image as OpenpyxlImage
 
 st.set_page_config(page_title="肉品追溯系統", layout="centered")
-st.title("🐖 豬肉追溯系統 - 雙照片升級版")
+st.title("🐖 豬肉追溯系統")
 
 # =================【1. 前端網頁輸入介面】=================
 st.subheader("📝 請填寫追溯表資料")
