@@ -149,8 +149,8 @@ labels_v1 = [
 for lbl_rng, lbl_txt, val_rng, val_txt in labels_v1:
     ws.merge_cells(lbl_rng)
     ws.merge_cells(val_rng)
-    ws[lbl_rng.split(':')[0]] = lbl_txt  # 🌟 修正：改回取第0個元素，傳入正確的字串索引
-    ws[val_rng.split(':')[0]] = val_txt  # 🌟 修正：改回取第0個元素，傳入正確的字串索引
+    ws[lbl_rng.split(':')[0]] = lbl_txt  
+    ws[val_rng.split(':')[0]] = val_txt  
     style_range(ws, lbl_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     style_range(ws, val_rng, font=font_body, alignment=align_center, border=border_all)
 ws.row_dimensions.height = 24
@@ -162,10 +162,10 @@ ws['A4'] = "產品包裝圖示 (包含特定品項之 QR Code 履歷查驗與進
 style_range(ws, 'A4:L4', font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
 ws.row_dimensions.height = 20
 
-# 將 A5:L5 全部合併為一整欄超大格子，徹底拔除中間所有的垂直線！
+# 🌟 大合併 A5:L5，徹底去除格子內部的所有格線
 ws.merge_cells('A5:L5')
 style_range(ws, 'A5:L5', border=border_all)
-ws.row_dimensions.height = 247.50  
+ws.row_dimensions[5].height = 247.50  # 修正：精確指定第 5 行的列高
 
 # 整合所有要並排的照片 (1.包裝圖, 3.QR截圖, 4.進階截圖)
 all_images_to_pack = []
@@ -177,24 +177,25 @@ if uploaded_qr_screenshot_1 is not None:
 if uploaded_qr_screenshot_2 is not None:
     all_images_to_pack.append(uploaded_qr_screenshot_2)
 
+# 🌟 修正排版逻辑：
+# 即使 A5:L5 已經合併，我們依然可以將圖片擺放在對應的虛擬欄位起點（每兩欄一個起點，共 6 個位置）
+# 這樣能達到完美的橫向平分、不留內部線條，且完全避免代碼噴錯！
+target_columns = ['A5', 'C5', 'E5', 'G5', 'I5', 'K5']
+
 if all_images_to_pack:
-    # 透過精算 X 軸偏移量，讓照片在 A5 大格子內由左至右漂亮橫向排開
     for idx, img_file in enumerate(all_images_to_pack[:6]):
-        pil_img = PILImage.open(img_file)
-        pil_img.thumbnail((130, 310))
-        
-        img_stream = io.BytesIO()
-        pil_img.save(img_stream, format='PNG')
-        img_stream.seek(0)
-        
-        img_obj = OpenpyxlImage(img_stream)
-        
-        # 使用 openpyxl 的 OneCellAnchor 定位，並手動計算橫向起點 (X 軸)
-        img_obj.anchor = "A5"
-        img_obj.drawing.left = 20 + (idx * 145)
-        img_obj.drawing.top = 10  
-        
-        ws.add_image(img_obj)
+        if idx < len(target_columns):
+            pil_img = PILImage.open(img_file)
+            # 等比例縮放：配合直向 A4 單格大小，設定最安全清晰的圖片尺寸
+            pil_img.thumbnail((150, 310))
+            
+            img_stream = io.BytesIO()
+            pil_img.save(img_stream, format='PNG')
+            img_stream.seek(0)
+            
+            img_obj = OpenpyxlImage(img_stream)
+            img_obj.anchor = target_columns[idx]  # 錨定在虛擬起點欄位
+            ws.add_image(img_obj)
 else:
     ws['A5'] = "（現場未上傳包裝或查驗照片）"
     ws['A5'].font = font_body
@@ -212,8 +213,8 @@ col_pairs = [('A7:B7','A8:B8'), ('C7:D7','C8:D8'), ('E7:F7','E8:F8'), ('G7:H7','
 for i, (h_rng, v_rng) in enumerate(col_pairs):
     ws.merge_cells(h_rng)
     ws.merge_cells(v_rng)
-    ws[h_rng.split(':')[0]] = headers_meat[i]  # 🌟 修正：改回取第0個元素
-    ws[v_rng.split(':')[0]] = values_meat[i]  # 🌟 修正：改回取第0個元素
+    ws[h_rng.split(':')[0]] = headers_meat[i]  
+    ws[v_rng.split(':')[0]] = values_meat[i]  
     style_range(ws, h_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     style_range(ws, v_rng, font=font_body, alignment=align_center, border=border_all)
 ws.row_dimensions.height = 24
@@ -234,8 +235,8 @@ labels_v4 = [
 for lbl_rng, lbl_txt, val_rng, val_txt in labels_v4:
     ws.merge_cells(lbl_rng)
     ws.merge_cells(val_rng)
-    ws[lbl_rng.split(':')[0]] = lbl_txt  # 🌟 修正：改回取第0個元素
-    ws[val_rng.split(':')[0]] = val_txt  # 🌟 修正：改回取第0個元素
+    ws[lbl_rng.split(':')[0]] = lbl_txt  
+    ws[val_rng.split(':')[0]] = val_txt  
     style_range(ws, lbl_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     style_range(ws, val_rng, font=font_body, alignment=align_center, border=border_all)
 ws.row_dimensions.height = 24
@@ -249,7 +250,7 @@ ws.row_dimensions.height = 20
 
 ws.merge_cells('A13:L13')
 style_range(ws, 'A13:L13', border=border_all)
-ws.row_dimensions.height = 355.90  
+ws.row_dimensions[13].height = 355.90  # 修正：精確指定第 13 行的列高
 
 if uploaded_receipt_file is not None:
     pil_receipt = PILImage.open(uploaded_receipt_file)
@@ -281,3 +282,4 @@ st.download_button(
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     use_container_width=True
 )
+
