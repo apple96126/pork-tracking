@@ -274,13 +274,12 @@ wb = Workbook()
 ws = wb.active
 ws.title = "加工肉品追蹤追溯表"
 
-# 🌟 A4 紙張設定
+# 🌟 A4 紙張設定（用數字代碼）
 ws.page_setup.paperSize = 9   # A4
 ws.page_setup.fitToPage = True
 ws.page_setup.fitToWidth = 1
 ws.page_setup.fitToHeight = 0
 
-# 邊界設定（單位：英吋）
 ws.page_margins.left = 0.5
 ws.page_margins.right = 0.5
 ws.page_margins.top = 0.75
