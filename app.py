@@ -7,7 +7,7 @@ from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from openpyxl.drawing.image import Image as OpenpyxlImage
 
 st.set_page_config(page_title="肉品追溯系統", layout="centered")
-st.title("🐖 豬肉追溯系統 - 高解析照片自動拉開版")
+st.title("🐖 豬肉追溯系統 - 4張照片完美整合版")
 
 # 輔助函數：快速格式化儲存格區域
 def style_range(ws, cell_range, font=None, alignment=None, fill=None, border=None):
@@ -62,9 +62,8 @@ sku_options = [f"{sku} - {info['品名']}" for sku, info in available_skus.items
 selected_sku_string = st.selectbox("2. 請選取產品品項", sku_options)
 
 selected_sku_code = selected_sku_string.split(" - ")[0]
-
-product_name = available_skus[selected_sku_code].get("品名", "未設定品名")
-need_qr_flow = available_skus[selected_sku_code].get("需要QR", False)
+product_name = available_skus[selected_sku_code]["品名"]
+need_qr_flow = available_skus[selected_sku_code].get("專屬與特定的QR流程", False) or available_skus[selected_sku_code].get("需要QR", False)
 
 col1, col2 = st.columns(2)
 with col1:
@@ -87,7 +86,7 @@ st.subheader("📸 基礎作業照片")
 
 col_img1, col_img2 = st.columns(2)
 with col_img1:
-    st.markdown("**1. 產品包裝圖示照片 (可多選)**")
+    st.markdown("**1. 產品包裝圖示照片 (可上傳多張)**")
     uploaded_image_files = st.file_uploader("請上傳肉品包裝照片（可多選）：", type=["jpg", "jpeg", "png"], accept_multiple_files=True, key="photo1_multi")
 with col_img2:
     st.markdown("**2. 進貨單據 / 銷貨單照片**")
@@ -98,7 +97,7 @@ uploaded_qr_screenshot_2 = None
 
 if need_qr_flow:
     st.write("---")
-    st.warning("🔍 偵測到此特定產品需要進行 QR Code 查驗，請於下方補登相關截圖（匯出後將以高解析大圖垂直排列於 Excel 下方）：")
+    st.warning("🔍 偵測到此特定產品需要進行 QR Code 查驗，請於下方補登相關截圖（匯出後將自動合併置於包裝圖示格子內）：")
     col_qr1, col_qr2 = st.columns(2)
     with col_qr1:
         st.markdown("**3. QR Code 頁面特定部分截圖**")
@@ -107,7 +106,7 @@ if need_qr_flow:
         st.markdown("**4. 進入下個頁面之進階截圖**")
         uploaded_qr_screenshot_2 = st.file_uploader("請上傳次頁進階資訊截圖：", type=["jpg", "jpeg", "png"], key="qr_snap2")
 
-# =================【3. 後端 Excel 高解析縱向自動拉開邏輯】=================
+# =================【3. 後端 Excel 多圖嵌入與一鍵下載邏輯】=================
 st.write("---")
 
 wb = Workbook()
@@ -123,14 +122,14 @@ fill_gray = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="sol
 thin_border = Side(style='thin', color='000000')
 border_all = Border(left=thin_border, right=thin_border, top=thin_border, bottom=thin_border)
 
-# 寫入大標題 (第 1 行)
+# 寫入大標題
 ws.merge_cells('A1:L1')
 ws['A1'] = "瓦城泰統集團\n加工肉品追蹤追溯表"
 ws['A1'].font = font_title
 ws['A1'].alignment = align_center
 ws.row_dimensions.height = 45
 
-# 區塊一：基本料號資訊 (第 2, 3 行)
+# 區塊一：基本料號資訊
 formatted_in_date = format_date_slash(in_date)
 labels_v1 = [
     ('A2:B2', '料號', 'C2:D2', selected_sku_code), ('E2:F2', '供應商', 'G2:L2', supplier),
@@ -146,15 +145,59 @@ for lbl_rng, lbl_txt, val_rng, val_txt in labels_v1:
 ws.row_dimensions.height = 24
 ws.row_dimensions.height = 24
 
-# 區塊二：原料肉資料 (第 4, 5 行)
+# 區塊二：產品包裝圖示 (🌟 寬度全開，高度優化，確保在 A4 範圍內)
 ws.merge_cells('A4:L4')
-ws['A4'] = "原料肉資料"
-style_range(ws, 'A4:L4', font=font_section, alignment=align_center, fill=fill_gray, border=border_all)
+ws['A4'] = "產品包裝圖示 (包含特定品項之 QR Code 履歷查驗與進階截圖證明)"
+style_range(ws, 'A4:L4', font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
+ws.row_dimensions.height = 20
+
+ws.merge_cells('A5:L5')
+style_range(ws, 'A5:L5', border=border_all)
+ws.row_dimensions.height = 190  # 🌟 控制高度在 190 點以內，完美守住 A4 天際線
+
+# 🌟 核心排版：精算格子欄位，將「所有照片」都在第 5 行的大格子橫向並排
+all_images_to_pack = []
+
+# 1. 塞入包裝照片 (最多前3張)
+if uploaded_image_files:
+    for f in uploaded_image_files[:3]:
+        all_images_to_pack.append(("pork", f))
+
+# 2. 塞入 QR 截圖一
+if uploaded_qr_screenshot_1 is not None:
+    all_images_to_pack.append(("qr", uploaded_qr_screenshot_1))
+
+# 3. 塞入 QR 截圖二
+if uploaded_qr_screenshot_2 is not None:
+    all_images_to_pack.append(("qr", uploaded_qr_screenshot_2))
+
+# 開始橫向派發並排 (每個照片依據順序佔用不同的直欄 A, C, E, G, I, K 作為左上角起點)
+target_columns = ['A5', 'C5', 'E5', 'G5', 'I5', 'K5']
+
+if all_images_to_pack:
+    for idx, (img_type, img_file) in enumerate(all_images_to_pack[:6]):
+        if idx < len(target_columns):
+            pil_img = PILImage.open(img_file)
+            # 等比例縮放：寬度限制在 85 像素，高度限制在 240 像素，確保塞得進 A4 欄位
+            pil_img.thumbnail((85, 240))
+            img_stream = io.BytesIO()
+            pil_img.save(img_stream, format='PNG')
+            img_stream.seek(0)
+            ws.add_image(OpenpyxlImage(img_stream), target_columns[idx])
+else:
+    ws['A5'] = "（現場未上傳包裝或查驗照片）"
+    ws['A5'].font = font_body
+    ws['A5'].alignment = align_center
+
+# 區塊三：原料肉資料 (留空)
+ws.merge_cells('A6:L6')
+ws['A6'] = "原料肉資料"
+style_range(ws, 'A6:L6', font=font_section, alignment=align_center, fill=fill_gray, border=border_all)
 ws.row_dimensions.height = 22
 
 headers_meat = ['屠宰日期', '屠宰單位', '原料肉名稱', '原料肉分切日期', '動物用藥檢驗', '微生物檢驗']
 values_meat = [slaughter_date, slaughter_unit, meat_type, cut_date, drugs_check, bio_check]
-col_pairs = [('A5:B5','A6:B6'), ('C5:D5','C6:D6'), ('E5:F5','E6:F6'), ('G5:H5','G6:H6'), ('I5:J5','I6:J6'), ('K5:L5','K6:L6')]
+col_pairs = [('A7:B7','A8:B8'), ('C7:D7','C8:D8'), ('E7:F7','E8:F8'), ('G7:H7','G8:H8'), ('I7:J7','I8:J8'), ('K7:L7','K8:L8')]
 for i, (h_rng, v_rng) in enumerate(col_pairs):
     ws.merge_cells(h_rng)
     ws.merge_cells(v_rng)
@@ -165,17 +208,17 @@ for i, (h_rng, v_rng) in enumerate(col_pairs):
 ws.row_dimensions.height = 24
 ws.row_dimensions.height = 24
 
-# 區塊三：產品加工資料 (第 7, 8 行)
-ws.merge_cells('A7:L7')
-ws['A7'] = "產品加工資料"
-style_range(ws, 'A7:L7', font=font_section, alignment=align_center, fill=fill_gray, border=border_all)
+# 區塊四：產品加工資料
+ws.merge_cells('A9:L9')
+ws['A9'] = "產品加工資料"
+style_range(ws, 'A9:L9', font=font_section, alignment=align_center, fill=fill_gray, border=border_all)
 ws.row_dimensions.height = 22
 
 formatted_make_date = format_date_slash(make_date)
 formatted_valid_date = format_date_slash(valid_date)
 labels_v4 = [
-    ('A8:B8', '產品規格', 'C8:D8', ""), ('E8:F8', '製造日期', 'G8:H8', formatted_make_date), ('I8:J8', '有效日期', 'K8:L8', formatted_valid_date),
-    ('A9:B9', '產品批號', 'C9:D9', ""), ('E9:F9', '生產數量', 'G9:H9', ""), ('I9:J9', '備註說明', 'K9:L9', "")
+    ('A10:B10', '產品規格', 'C10:D10', ""), ('E10:F10', '製造日期', 'G10:H10', formatted_make_date), ('I10:J10', '有效日期', 'K10:L10', formatted_valid_date),
+    ('A11:B11', '產品批號', 'C11:D11', ""), ('E11:F11', '生產數量', 'G11:H11', ""), ('I11:J11', '備註說明', 'K11:L11', "")
 ]
 for lbl_rng, lbl_txt, val_rng, val_txt in labels_v4:
     ws.merge_cells(lbl_rng)
@@ -187,114 +230,31 @@ for lbl_rng, lbl_txt, val_rng, val_txt in labels_v4:
 ws.row_dimensions.height = 24
 ws.row_dimensions.height = 24
 
-# 🌟 核心改版：建立一個「高解析動態縱向塞圖」的通用函數
-current_row = 10  # 紀錄目前 Excel 已經寫到第幾行
+# 區塊五：相關進貨單據 (🌟 只有這張照片維持單獨放在最下方的第 13 行)
+ws.merge_cells('A12:L12')
+ws['A12'] = "相關進貨單據 / 銷貨單收據證明"
+style_range(ws, 'A12:L12', font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
+ws.row_dimensions.height = 20
 
-def insert_large_photo_block(ws, title_text, file_objects, row_start):
-    """橫跨 A~L 欄建立大型圖示區塊，並自動依圖片比例拉開行高"""
-    # 1. 寫入該照片的區塊小標題
-    ws.merge_cells(f'A{row_start}:L{row_start}')
-    ws[f'A{row_start}'] = title_text
-    style_range(ws, f'A{row_start}:L{row_start}', font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
-    ws.row_dimensions[row_start].height = 22
-    
-    img_row = row_start + 1
-    
-    if file_objects:
-        # 如果是多張（清單），就跑巡迴往下蓋樓
-        files = file_objects if isinstance(file_objects, list) else [file_objects]
-        for f in files:
-            if f is not None:
-                # 合併這一列的 A~L 欄作為放置大圖的底盤
-                ws.merge_cells(f'A{img_row}:L{img_row}')
-                style_range(ws, f'A{img_row}:L{img_row}', border=border_all)
-                
-                # 讀取並放大照片：寬度加寬至 500 像素，維持極高清晰度
-                pil_img = PILImage.open(f)
-                w, h = pil_img.size
-                scale_ratio = 500 / float(w)
-                new_h = int(float(h) * scale_ratio)
-                
-                # 🌟 核心防呆：限制最高 450 像素避免單張圖過長，並將 PIL 圖片轉換為 Excel 可以讀的格式
-                pil_img.thumbnail((500, 450))
-                final_w, final_h = pil_img.size
-                
-                img_stream = io.BytesIO()
-                pil_img.save(img_stream, format='PNG')
-                img_stream.seek(0)
-                
-                # 🌟 神奇的自動拉開行高：將圖片的像素高度，精準換算成 Excel 的 Row Height 點數
-                excel_row_height = int(final_h * 0.75) + 15
-                ws.row_dimensions[img_row].height = excel_row_height
-                
-                # 將大圖塞入 A 欄起點
-                ws.add_image(OpenpyxlImage(img_stream), f'A{img_row}')
-                img_row += 1
-    else:
-        # 未上傳時建立一個小小的留白格子
-        ws.merge_cells(f'A{img_row}:L{img_row}')
-        ws[f'A{img_row}'] = "（現場同仁未上傳/拍攝此項目照片證明）"
-        ws[f'A{img_row}'].font = font_body
-        ws[f'A{img_row}'].alignment = align_center
-        style_range(ws, f'A{img_row}:L{img_row}', border=border_all)
-        ws.row_dimensions[img_row].height = 30
-        img_row += 1
-        
-    return img_row
+ws.merge_cells('A13:L13')
+style_range(ws, 'A13:L13', border=border_all)
+ws.row_dimensions.height = 220  
 
-# 2. 依序動態向下建立 4 個高解析大圖格子
-current_row = insert_large_photo_block(ws, "📷 項目一：產品包裝圖示證明", uploaded_image_files, current_row)
-current_row = insert_large_photo_block(ws, "📄 項目二：相關進貨單據 / 銷貨單收據證明", uploaded_receipt_file, current_row)
+if uploaded_receipt_file is not None:
+    pil_receipt = PILImage.open(uploaded_receipt_file)
+    pil_receipt.thumbnail((450, 280))
+    img_byte_arr2 = io.BytesIO()
+    pil_receipt.save(img_byte_arr2, format='PNG')
+    img_byte_arr2.seek(0)
+    ws.add_image(OpenpyxlImage(img_byte_arr2), 'A13')
+else:
+    ws['A13'] = "（現場未上傳單據照片）"
+    ws['A13'].font = font_body
+    ws['A13'].alignment = align_center
 
-if need_qr_flow:
-    current_row = insert_large_photo_block(ws, "🔍 特定品項 - 項目三：QR Code 產銷履歷查驗特定範圍截圖", uploaded_qr_screenshot_1, current_row)
-    current_row = insert_large_photo_block(ws, "📱 特定品項 - 項目四：進入下個頁面之進階截圖證明", uploaded_qr_screenshot_2, current_row)
-
-# 調整固定欄寬
 for col in ['A','B','C','D','E','F','G','H','I','J','K','L']:
     ws.column_dimensions[col].width = 11
 
-excel_data = io.BytesIO()
-wb.save(excel_data)
-excel_data.seek(0)
-# =================【Excel 報表建立】=================
-wb = Workbook()
-ws = wb.active
-ws.title = "加工肉品追蹤追溯表"
-
-# 🌟 A4 紙張設定（用數字代碼）
-ws.page_setup.paperSize = 9   # A4
-ws.page_setup.fitToPage = True
-ws.page_setup.fitToWidth = 1
-ws.page_setup.fitToHeight = 0
-
-ws.page_margins.left = 0.5
-ws.page_margins.right = 0.5
-ws.page_margins.top = 0.75
-ws.page_margins.bottom = 0.75
-ws.page_margins.header = 0.3
-ws.page_margins.footer = 0.3
-
-# 依序動態向下建立大圖格子
-current_row = 10
-current_row = insert_large_photo_block(
-    ws,
-    "📷 項目一：產品包裝 + QR Code 截圖",
-    uploaded_image_files + [uploaded_qr_screenshot_1, uploaded_qr_screenshot_2],
-    current_row
-)
-current_row = insert_large_photo_block(
-    ws,
-    "📄 項目二：進貨單據 / 銷貨單收據證明",
-    uploaded_receipt_file,
-    current_row
-)
-
-# 調整固定欄寬
-for col in ['A','B','C','D','E','F','G','H','I','J','K','L']:
-    ws.column_dimensions[col].width = 11
-
-# =================【存檔 + 下載按鈕】=================
 excel_data = io.BytesIO()
 wb.save(excel_data)
 excel_data.seek(0)
@@ -306,4 +266,3 @@ st.download_button(
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     use_container_width=True
 )
-
