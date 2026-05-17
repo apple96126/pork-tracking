@@ -18,19 +18,18 @@ def style_range(ws, cell_range, font=None, alignment=None, fill=None, border=Non
             if fill: cell.fill = fill
             if border: cell.border = border
 
-# 輔助函數：將日期格式化為 YYYY/M/D 斜線格式
+# 輔助函數：將日期格式化為 YYYY/M/D 斜線格式 (移除月份與日期的前導零)
 def format_date_slash(dt):
     if isinstance(dt, date):
         return f"{dt.year}/{dt.month}/{dt.day}"
     return str(dt)
 
 # =================【🥩 依廠商分類的核心主資料庫 🥩】=================
-# 🌟 最新修正：已成功加入「超秦企業股份有限公司」與需要 QR Code 查驗的「ME-230002 雞絞肉」！
 PORK_HIERARCHY = {
     "香里食品企業股份有限公司": {
         "ME-320039": {"品名": "1.2後腿絞肉206g", "需要QR": True},
-        "ME-320040": {"品名": "預設肉品項目206g", "開拓QR": True},
-        "ME-320018": {"品名": "豬皮", "需要QR": False},
+        "ME-320040": {"品名": "預設肉品項目206g", "需要QR": True},
+        "ME-320018": {"品名": "豬皮", "行政QR": False},
         "ME-330036": {"品名": "中油角(1.5)", "需要QR": False},
         "ME-320043": {"品名": "梅花肉丁", "需要QR": False},
         "ME-330048": {"品名": "中油角", "需要QR": False}
@@ -66,14 +65,14 @@ sku_options = [f"{sku} - {info['品名']}" for sku, info in available_skus.items
 selected_sku_string = st.selectbox("2. 請選取產品品項", sku_options)
 
 # 第三步：從選中的字串中切出正確的料號與品名，並對應其他資訊
-part_no = selected_sku_string.split(" - ")[0]
-product_name = available_skus[part_no]["品名"]
-need_qr_flow = available_skus[part_no].get("需要QR", False)
+selected_sku_code = selected_sku_string.split(" - ")[0]
+product_name = available_skus[selected_sku_code]["品名"]
+need_qr_flow = available_skus[selected_sku_code].get("需要QR", False)
 
 # 網頁排版呈現
 col1, col2 = st.columns(2)
 with col1:
-    st.info(f"📦 自動對應料號：{part_no}")
+    st.info(f"📦 自動對應料號：{selected_sku_code}")
 with col2:
     in_date = st.date_input("4. 進貨日", value=date.today())
 
@@ -144,14 +143,15 @@ formatted_in_date = format_date_slash(in_date)
 
 # 區塊一：基本料號資訊
 labels_v1 = [
-    ('A2:B2', '料號', 'C2:D2', part_no), ('E2:F2', '供應商', 'G2:L2', supplier),
+    ('A2:B2', '料號', 'C2:D2', selected_sku_code), ('E2:F2', '供應商', 'G2:L2', supplier),
     ('A3:B3', '品名', 'C3:D3', product_name), ('E3:F3', '進貨日', 'G3:L3', formatted_in_date)
 ]
 for lbl_rng, lbl_txt, val_rng, val_txt in labels_v1:
     ws.merge_cells(lbl_rng)
     ws.merge_cells(val_rng)
-    ws[lbl_rng.split(':')] = lbl_txt  
-    ws[val_rng.split(':')] = val_txt  
+    # 🌟 終極修正點：在 split(':') 後面全部加上 [0]，精準鎖定單一格子起點，彻底清除 TypeError
+    ws[lbl_rng.split(':')[0]] = lbl_txt  
+    ws[val_rng.split(':')[0]] = val_txt  
     style_range(ws, lbl_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     style_range(ws, val_rng, font=font_body, alignment=align_center, border=border_all)
 ws.row_dimensions.height = 25
@@ -192,8 +192,9 @@ col_pairs = [('A7:B7','A8:B8'), ('C7:D7','C8:D8'), ('E7:F7','E8:F8'), ('G7:H7','
 for i, (h_rng, v_rng) in enumerate(col_pairs):
     ws.merge_cells(h_rng)
     ws.merge_cells(v_rng)
-    ws[h_rng.split(':')] = headers_meat[i]  
-    ws[v_rng.split(':')] = values_meat[i]  
+    # 🌟 終極修正點：加上 [0] 確保 openpyxl 相容
+    ws[h_rng.split(':')[0]] = headers_meat[i]  
+    ws[v_rng.split(':')[0]] = values_meat[i]  
     style_range(ws, h_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     style_range(ws, v_rng, font=font_body, alignment=align_center, border=border_all)
 
@@ -211,8 +212,9 @@ labels_v4 = [
 for lbl_rng, lbl_txt, val_rng, val_txt in labels_v4:
     ws.merge_cells(lbl_rng)
     ws.merge_cells(val_rng)
-    ws[lbl_rng.split(':')] = lbl_txt  
-    ws[val_rng.split(':')] = val_txt  
+    # 🌟 終極修正點：加上 [0] 確保 openpyxl 相容
+    ws[lbl_rng.split(':')[0]] = lbl_txt  
+    ws[val_rng.split(':')[0]] = val_txt  
     style_range(ws, lbl_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     style_range(ws, val_rng, font=font_body, alignment=align_center, border=border_all)
 ws.row_dimensions.height = 25
@@ -286,7 +288,7 @@ excel_data.seek(0)
 st.download_button(
     label="📥 下載 Excel 報表",
     data=excel_data,
-    file_name=f"加工肉品追蹤追溯表_{part_no}.xlsx",
+    file_name=f"加工肉品追蹤追溯表_{selected_sku_code}.xlsx",
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     use_container_width=True
 )
