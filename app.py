@@ -7,7 +7,7 @@ from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from openpyxl.drawing.image import Image as OpenpyxlImage
 
 st.set_page_config(page_title="肉品追溯系統", layout="centered")
-st.title("🐖 豬肉追溯系統 - 4張照片完美整合版")
+st.title("🐖 豬肉追溯系統 - 廠商/品項雙層連動版")
 
 # 輔助函數：快速格式化儲存格區域
 def style_range(ws, cell_range, font=None, alignment=None, fill=None, border=None):
@@ -18,47 +18,63 @@ def style_range(ws, cell_range, font=None, alignment=None, fill=None, border=Non
             if fill: cell.fill = fill
             if border: cell.border = border
 
-# 輔助函數：將日期格式化為 YYYY/M/D 斜線格式 (移除月份與日期的前導零)
+# 輔助函數：將日期格式化為 YYYY/M/D 斜線格式
 def format_date_slash(dt):
     if isinstance(dt, date):
         return f"{dt.year}/{dt.month}/{dt.day}"
     return str(dt)
 
-# =================【🥩 瓦城泰統肉品核心主資料庫 🥩】=================
-PORK_DATABASE = {
-    "ME-320039": {"品名": "1.2後腿絞肉206g", "供應商": "香里食品企業股份有限公司", "需要QR": True},
-    "ME-320040": {"品名": "預設肉品項目206g", "供應商": "香里食品企業股份有限公司", "需要QR": True},
-    "ME-320035": {"品名": "板油絞(4公斤)", "供應商": "弘飛", "需要QR": False},
-    "ME-320024": {"品名": "買賣類-豬上排(單隻)", "供應商": "弘飛", "需要QR": False},
-    "ME-320023": {"品名": "腩排丁", "供應商": "弘飛", "需要QR": False},
-    "ME-300064": {"品名": "買賣類-豬炒片", "供應商": "弘飛", "需要QR": False},
-    "ME-300046": {"品名": "去皮五花肉片", "供應商": "弘飛", "需要QR": False},
-    "ME-300062": {"品名": "帶骨里肌肉片", "供應商": "弘飛", "需要QR": False},
-    "ME-300045": {"品名": "附皮肥肉丁", "供應商": "泰安", "需要QR": False},
-    "ME-320004": {"品名": "帶皮五花肉片", "供應商": "泰安", "需要QR": False},
-    "ME-320018": {"品名": "豬皮", "供應商": "香里", "需要QR": False},
-    "ME-330036": {"品名": "中油角(1.5)", "供應商": "香里", "需要QR": False},
-    "ME-320043": {"品名": "梅花肉丁", "供應商": "香里", "需要QR": False},
-    "ME-330048": {"品名": "中油角", "供應商": "香里", "需要QR": False},
-    "ME-230002": {"品名": "雞絞肉", "供應商": "超秦企業股份有限公司", "需要QR": True}
-
+# =================【🥩 依廠商分類的核心主資料庫 🥩】=================
+# 🌟 最新修正：已成功加入「超秦企業股份有限公司」與需要 QR Code 查驗的「ME-230002 雞絞肉」！
+PORK_HIERARCHY = {
+    "香里食品企業股份有限公司": {
+        "ME-320039": {"品名": "1.2後腿絞肉206g", "需要QR": True},
+        "ME-320040": {"品名": "預設肉品項目206g", "開拓QR": True},
+        "ME-320018": {"品名": "豬皮", "需要QR": False},
+        "ME-330036": {"品名": "中油角(1.5)", "需要QR": False},
+        "ME-320043": {"品名": "梅花肉丁", "需要QR": False},
+        "ME-330048": {"品名": "中油角", "需要QR": False}
+    },
+    "弘飛": {
+        "ME-320035": {"品名": "板油絞(4公斤)", "需要QR": False},
+        "ME-320024": {"品名": "買賣類-豬上排(單隻)", "需要QR": False},
+        "ME-320023": {"品名": "腩排丁", "需要QR": False},
+        "ME-300064": {"品名": "買賣類-豬炒片", "需要QR": False},
+        "ME-300046": {"品名": "去皮五花肉片", "需要QR": False},
+        "ME-300062": {"品名": "帶骨里肌肉片", "需要QR": False}
+    },
+    "泰安": {
+        "ME-300045": {"品名": "附皮肥肉丁", "需要QR": False},
+        "ME-320004": {"品名": "帶皮五花肉片", "需要QR": False}
+    },
+    "超秦企業股份有限公司": {
+        "ME-230002": {"品名": "雞絞肉", "需要QR": True}
+    }
 }
 
 # =================【1. 前端網頁輸入介面】=================
 st.subheader("📝 請填寫追溯表資料")
 
-sku_list = list(PORK_DATABASE.keys())
-part_no = st.selectbox("1. 請選取產品料號", sku_list)
+# 第一步：先讓同仁選擇「廠商」
+supplier_list = list(PORK_HIERARCHY.keys())
+supplier = st.selectbox("1. 請先選取供應商", supplier_list)
 
-auto_product_name = PORK_DATABASE[part_no]["品名"]
-auto_supplier = PORK_DATABASE[part_no]["供應商"]
-need_qr_flow = PORK_DATABASE[part_no].get("需要QR", False)
+# 第二步：根據選好的廠商，動態抓出該廠商「專屬的料號清單」
+available_skus = PORK_HIERARCHY[supplier]
+sku_options = [f"{sku} - {info['品名']}" for sku, info in available_skus.items()]
 
+selected_sku_string = st.selectbox("2. 請選取產品品項", sku_options)
+
+# 第三步：從選中的字串中切出正確的料號與品名，並對應其他資訊
+part_no = selected_sku_string.split(" - ")[0]
+product_name = available_skus[part_no]["品名"]
+need_qr_flow = available_skus[part_no].get("需要QR", False)
+
+# 網頁排版呈現
 col1, col2 = st.columns(2)
 with col1:
-    product_name = st.text_input("2. 品名 (已由料號自動連動)", value=auto_product_name)
+    st.info(f"📦 自動對應料號：{part_no}")
 with col2:
-    supplier = st.text_input("3. 供應商 (已由料號自動連動)", value=auto_supplier)
     in_date = st.date_input("4. 進貨日", value=date.today())
 
 # 隱藏與留空變數設定
@@ -71,19 +87,19 @@ with col3:
 with col4:
     valid_date = st.date_input("12. 有效日期", value=date.today())
 
-# =================【2. 📸 基礎照片上傳區】=================
+# =================【2. 📸 基礎照片上傳區（多張包裝圖）】=================
 st.write("---")
 st.subheader("📸 基礎作業照片")
 
 col_img1, col_img2 = st.columns(2)
 with col_img1:
-    st.markdown("**1. 產品包裝圖示照片**")
-    uploaded_image_file = st.file_uploader("請選擇或拍攝肉品包裝照片：", type=["jpg", "jpeg", "png"], key="photo1")
+    st.markdown("**1. 產品包裝圖示照片 (可上傳多張)**")
+    uploaded_image_files = st.file_uploader("請上傳肉品包裝照片（可多選）：", type=["jpg", "jpeg", "png"], accept_multiple_files=True, key="photo1_multi")
 with col_img2:
     st.markdown("**2. 進貨單據 / 銷貨單照片**")
     uploaded_receipt_file = st.file_uploader("請選擇或拍攝單據照片：", type=["jpg", "jpeg", "png"], key="photo2")
 
-# =================【3. 📱 條件觸發：特定產品的 QR Code 截圖上傳區】=================
+# =================【3. 📱 條件觸發：QR Code 截圖上傳區】=================
 uploaded_qr_screenshot_1 = None
 uploaded_qr_screenshot_2 = None
 
@@ -99,7 +115,7 @@ if need_qr_flow:
         st.markdown("**4. 進入下個頁面之進階截圖**")
         uploaded_qr_screenshot_2 = st.file_uploader("請上傳次頁進階資訊截圖：", type=["jpg", "jpeg", "png"], key="qr_snap2")
 
-# =================【4. 後端 Excel 4圖嵌入與一鍵下載邏輯】=================
+# =================【4. 後端 Excel 多圖嵌入與一鍵下載邏輯】=================
 st.write("---")
 
 wb = Workbook()
@@ -134,9 +150,8 @@ labels_v1 = [
 for lbl_rng, lbl_txt, val_rng, val_txt in labels_v1:
     ws.merge_cells(lbl_rng)
     ws.merge_cells(val_rng)
-    # 🌟 核心修正：加上 [0] 確保只指派給合併儲存格的左上角第一格，100% 解決 TypeError
-    ws[lbl_rng.split(':')[0]] = lbl_txt  
-    ws[val_rng.split(':')[0]] = val_txt  
+    ws[lbl_rng.split(':')] = lbl_txt  
+    ws[val_rng.split(':')] = val_txt  
     style_range(ws, lbl_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     style_range(ws, val_rng, font=font_body, alignment=align_center, border=border_all)
 ws.row_dimensions.height = 25
@@ -151,13 +166,16 @@ ws.merge_cells('A5:L5')
 style_range(ws, 'A5:L5', border=border_all)
 ws.row_dimensions.height = 180  
 
-if uploaded_image_file is not None:
-    pil_img = PILImage.open(uploaded_image_file)
-    pil_img.thumbnail((400, 230))
-    img_byte_arr = io.BytesIO()
-    pil_img.save(img_byte_arr, format='PNG')
-    img_byte_arr.seek(0)
-    ws.add_image(OpenpyxlImage(img_byte_arr), 'A5')
+# 處理多張包裝照片並排
+if uploaded_image_files:
+    for idx, file in enumerate(uploaded_image_files[:3]):
+        pil_img = PILImage.open(file)
+        pil_img.thumbnail((140, 230))
+        img_byte_arr = io.BytesIO()
+        pil_img.save(img_byte_arr, format='PNG')
+        img_byte_arr.seek(0)
+        target_cells = ['A5', 'E5', 'I5']
+        ws.add_image(OpenpyxlImage(img_byte_arr), target_cells[idx])
 else:
     ws['A5'] = "（現場未上傳包裝照片）"
     ws['A5'].font = font_body
@@ -174,9 +192,8 @@ col_pairs = [('A7:B7','A8:B8'), ('C7:D7','C8:D8'), ('E7:F7','E8:F8'), ('G7:H7','
 for i, (h_rng, v_rng) in enumerate(col_pairs):
     ws.merge_cells(h_rng)
     ws.merge_cells(v_rng)
-    # 🌟 核心修正：加上 [0] 精準寫入合併格子起點
-    ws[h_rng.split(':')[0]] = headers_meat[i]  
-    ws[v_rng.split(':')[0]] = values_meat[i]  
+    ws[h_rng.split(':')] = headers_meat[i]  
+    ws[v_rng.split(':')] = values_meat[i]  
     style_range(ws, h_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     style_range(ws, v_rng, font=font_body, alignment=align_center, border=border_all)
 
@@ -194,9 +211,8 @@ labels_v4 = [
 for lbl_rng, lbl_txt, val_rng, val_txt in labels_v4:
     ws.merge_cells(lbl_rng)
     ws.merge_cells(val_rng)
-    # 🌟 核心修正：加上 [0] 精準寫入合併格子起點
-    ws[lbl_rng.split(':')[0]] = lbl_txt  
-    ws[val_rng.split(':')[0]] = val_txt  
+    ws[lbl_rng.split(':')] = lbl_txt  
+    ws[val_rng.split(':')] = val_txt  
     style_range(ws, lbl_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     style_range(ws, val_rng, font=font_body, alignment=align_center, border=border_all)
 ws.row_dimensions.height = 25
@@ -235,7 +251,6 @@ style_range(ws, 'A15:F15', border=border_all)
 style_range(ws, 'G15:L15', border=border_all)
 ws.row_dimensions.height = 240 
 
-# 塞入 QR 截圖 1
 if uploaded_qr_screenshot_1 is not None:
     pil_qr1 = PILImage.open(uploaded_qr_screenshot_1)
     pil_qr1.thumbnail((260, 300))
@@ -248,7 +263,6 @@ else:
     ws['A15'].font = font_body
     ws['A15'].alignment = align_center
 
-# 塞入 QR 截圖 2
 if uploaded_qr_screenshot_2 is not None:
     pil_qr2 = PILImage.open(uploaded_qr_screenshot_2)
     pil_qr2.thumbnail((260, 300))
@@ -276,4 +290,3 @@ st.download_button(
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     use_container_width=True
 )
-
