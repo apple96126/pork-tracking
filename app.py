@@ -9,7 +9,7 @@ from openpyxl.drawing.image import Image as OpenpyxlImage
 st.set_page_config(page_title="肉品追溯系統", layout="centered")
 st.title("🐖 豬肉追溯系統 - 完美雲端上線版")
 
-# 輔助函數：快速格式化儲存格區域（移至最頂端定義）
+# 輔助函數：快速格式化儲存格區域
 def style_range(ws, cell_range, font=None, alignment=None, fill=None, border=None):
     for row in ws[cell_range]:
         for cell in row:
@@ -106,8 +106,8 @@ labels_v1 = [
 for lbl_rng, lbl_txt, val_rng, val_txt in labels_v1:
     ws.merge_cells(lbl_rng)
     ws.merge_cells(val_rng)
-    ws[lbl_rng.split(':')] = lbl_txt
-    ws[val_rng.split(':')] = val_txt
+    ws[lbl_rng.split(':')[0]] = lbl_txt  # 🌟 修正：精準寫入左上角儲存格
+    ws[val_rng.split(':')[0]] = val_txt  # 🌟 修正：精準寫入左上角儲存格
     style_range(ws, lbl_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     style_range(ws, val_rng, font=font_body, alignment=align_center, border=border_all)
 ws.row_dimensions.height = 25
@@ -148,8 +148,8 @@ col_pairs = [('A7:B7','A8:B8'), ('C7:D7','C8:D8'), ('E7:F7','E8:F8'), ('G7:H7','
 for i, (h_rng, v_rng) in enumerate(col_pairs):
     ws.merge_cells(h_rng)
     ws.merge_cells(v_rng)
-    ws[h_rng.split(':')] = headers_meat[i]
-    ws[v_rng.split(':')] = values_meat[i]
+    ws[h_rng.split(':')[0]] = headers_meat[i]  # 🌟 修正：精準寫入左上角儲存格
+    ws[v_rng.split(':')[0]] = values_meat[i]  # 🌟 修正：精準寫入左上角儲存格
     style_range(ws, h_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     style_range(ws, v_rng, font=font_body, alignment=align_center, border=border_all)
 
@@ -169,8 +169,8 @@ labels_v4 = [
 for lbl_rng, lbl_txt, val_rng, val_txt in labels_v4:
     ws.merge_cells(lbl_rng)
     ws.merge_cells(val_rng)
-    ws[lbl_rng.split(':')] = lbl_txt
-    ws[val_rng.split(':')] = val_txt
+    ws[lbl_rng.split(':')[0]] = lbl_txt  # 🌟 修正：精準寫入左上角儲存格
+    ws[val_rng.split(':')[0]] = val_txt  # 🌟 修正：精準寫入左上角儲存格
     style_range(ws, lbl_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     style_range(ws, val_rng, font=font_body, alignment=align_center, border=border_all)
 ws.row_dimensions.height = 25
@@ -207,7 +207,7 @@ excel_data = io.BytesIO()
 wb.save(excel_data)
 excel_data.seek(0)
 
-# 一鍵直接下載按鈕（無多餘的綠色提示字）
+# 一鍵直接下載按鈕
 st.download_button(
     label="📥 下載 Excel 報表",
     data=excel_data,
