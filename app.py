@@ -67,7 +67,7 @@ if st.button("🚀 匯出完美還原 Excel 報表", use_container_width=True):
     wb = Workbook()
     ws = wb.active
     ws.title = "加工肉品追蹤追溯表"
-        ws.views.sheetView.showGridLines = True
+    ws.views.sheetView.showGridLines = True
 
     # 定義樣式與字型
     font_title = Font(name="微軟正黑體", size=16, bold=True)
