@@ -190,10 +190,12 @@ ws.row_dimensions.height = 24
 current_row = 10  # 紀錄目前 Excel 已經寫到第幾行
 
 def insert_large_photo_block(ws, title_text, file_objects, row_start):
-    """橫跨 A~L 欄建立大型圖示區塊，並依標題自動判斷列高與欄寬"""
+    """橫跨 A~L 欄建立大型圖示區塊，保持原始解析度，並依標題自動判斷列高與欄寬"""
+    # 標題列
     ws.merge_cells(f'A{row_start}:L{row_start}')
     ws[f'A{row_start}'] = title_text
-    style_range(ws, f'A{row_start}:L{row_start}', font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
+    style_range(ws, f'A{row_start}:L{row_start}', font=font_grid_header,
+                alignment=align_center, fill=fill_gray, border=border_all)
     ws.row_dimensions[row_start].height = 22
     
     img_row = row_start + 1
@@ -218,17 +220,19 @@ def insert_large_photo_block(ws, title_text, file_objects, row_start):
         for idx, f in enumerate(files):
             if f is not None:
                 pil_img = PILImage.open(f)
-                pil_img = PILImage.open(f)
                 # 保持原始解析度，不縮小
                 img_stream = io.BytesIO()
                 pil_img.save(img_stream, format='PNG')
                 img_stream.seek(0)
-                ws.add_image(OpenpyxlImage(img_stream), f'{start_col}{img_row}')
-
 
                 # 計算起始欄位
                 start_col = chr(ord('A') + idx * col_span)
                 ws.add_image(OpenpyxlImage(img_stream), f'{start_col}{img_row}')
+                
+                # 調整欄寬
+                for c in range(col_span):
+                    col_letter = chr(ord('A') + idx * col_span + c)
+                    ws.column_dimensions[col_letter].width = 20
     else:
         ws.merge_cells(f'A{img_row}:L{img_row}')
         ws[f'A{img_row}'] = "（現場同仁未上傳/拍攝此項目照片證明）"
@@ -266,6 +270,17 @@ st.download_button(
     label="📥 下載 Excel 報表",
     data=excel_data,
     file_name=f"加工肉品追蹤追溯表_{selected_sku_code}.xlsx",
+    # 🌟 A4 紙張設定
+    ws.page_setup.paperSize = ws.PAPERSIZE_A4
+    ws.page_setup.fitToPage = True
+    ws.page_setup.fitToWidth = 1
+    ws.page_setup.fitToHeight = 0
+    ws.page_margins.left = 0.5
+    ws.page_margins.right = 0.5
+    ws.page_margins.top = 0.75
+    ws.page_margins.bottom = 0.75
+    ws.page_margins.header = 0.3
+    ws.page_margins.footer = 0.3
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     use_container_width=True
 )
