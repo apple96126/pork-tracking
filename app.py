@@ -7,7 +7,7 @@ from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from openpyxl.drawing.image import Image as OpenpyxlImage
 
 st.set_page_config(page_title="肉品追溯系統", layout="centered")
-st.title("🐖 豬肉追溯系統 - 完美雲端上線版")
+st.title("🐖 豬肉追溯系統")
 
 # =================【1. 前端網頁輸入介面】=================
 st.subheader("📝 請填寫追溯表資料")
@@ -176,10 +176,10 @@ if st.button("🚀 匯出完美還原 Excel 報表", use_container_width=True):
     excel_data.seek(0)
 
     st.download_button(
-        label="📥 下載內嵌照片之完美排版 Excel 檔",
+        label="📥 下載 Excel 檔",
         data=excel_data,
         file_name=f"加工肉品追蹤追溯表_{part_no}.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         use_container_width=True
     )
-    st.success("🎉 網頁優化成功！請點擊上方按鈕下載。")
+  
