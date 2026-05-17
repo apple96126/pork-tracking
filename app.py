@@ -18,9 +18,9 @@ def style_range(ws, cell_range, font=None, alignment=None, fill=None, border=Non
             if fill: cell.fill = fill
             if border: cell.border = border
 
-# 輔助函數：將日期格式化為 YYYY/M/D (移除月份與日期的前導零)
+# 💡 修正後：移除 pd 的相依性，純使用 Python 內建的 date 進行精準格式化
 def format_date_slash(dt):
-    if isinstance(dt, (date, pd.Timestamp)):
+    if isinstance(dt, date):
         return f"{dt.year}/{dt.month}/{dt.day}"
     return str(dt)
 
@@ -36,7 +36,7 @@ with col2:
     supplier = st.text_input("3. 供應商", value="香里食品企業股份有限公司")
     in_date = st.date_input("4. 進貨日", value=date.today())
 
-# 📢 隱藏與留空變數設定：網頁不顯示，且 Excel 內全部留空 ""
+# 隱藏與留空變數設定：網頁不顯示，且 Excel 內全部留空 ""
 slaughter_date = ""  
 slaughter_unit = ""  
 meat_type = ""       
@@ -44,7 +44,7 @@ cut_date = ""
 drugs_check = ""     
 bio_check = ""       
 
-# 加工日期仍留在網頁上供使用者調整
+# 加工日期
 st.write("---")
 col3, col4 = st.columns(2)
 with col3:
@@ -101,7 +101,7 @@ ws['A1'].font = font_title
 ws['A1'].alignment = align_center
 ws.row_dimensions.height = 50
 
-# 🌟 修正：將進貨日轉為 YYYY/M/D 斜線格式
+# 將日期轉為 YYYY/M/D 斜線格式
 formatted_in_date = format_date_slash(in_date)
 
 # 區塊一：基本料號資訊表
@@ -166,7 +166,7 @@ ws.merge_cells('A9:L9')
 ws['A9'] = "產品加工資料"
 style_range(ws, 'A9:L9', font=font_section, alignment=align_center, fill=fill_gray, border=border_all)
 
-# 🌟 修正：將製造日期與有效日期轉為 YYYY/M/D 斜線格式
+# 將製造日期與有效日期轉為 YYYY/M/D 斜線格式
 formatted_make_date = format_date_slash(make_date)
 formatted_valid_date = format_date_slash(valid_date)
 
