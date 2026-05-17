@@ -18,6 +18,12 @@ def style_range(ws, cell_range, font=None, alignment=None, fill=None, border=Non
             if fill: cell.fill = fill
             if border: cell.border = border
 
+# 輔助函數：將日期格式化為 YYYY/M/D (移除月份與日期的前導零)
+def format_date_slash(dt):
+    if isinstance(dt, (date, pd.Timestamp)):
+        return f"{dt.year}/{dt.month}/{dt.day}"
+    return str(dt)
+
 # =================【1. 前端網頁輸入介面】=================
 st.subheader("📝 請填寫追溯表資料")
 col1, col2 = st.columns(2)
@@ -28,24 +34,23 @@ with col1:
 
 with col2:
     supplier = st.text_input("3. 供應商", value="香里食品企業股份有限公司")
-    in_date = st.date_input("4. 進貨日", value=date(2025, 12, 26))
+    in_date = st.date_input("4. 進貨日", value=date.today())
 
-# 📢 隱藏與留空變數設定：網頁不顯示
-# 依照指示：將所有檢驗與原料肉欄位在 Excel 內全部留空 ""
-slaughter_date = ""  # 5. 屠宰日期 留空
-slaughter_unit = ""  # 6. 屠宰單位 留空
-meat_type = ""       # 7. 原料肉名稱 留空
-cut_date = ""        # 8. 原料肉分切日期 留空
-drugs_check = ""     # 9. 動物用藥檢驗 留空 🌟(最新修正)
-bio_check = ""       # 10. 微生物檢驗 留空 🌟(最新修正)
+# 📢 隱藏與留空變數設定：網頁不顯示，且 Excel 內全部留空 ""
+slaughter_date = ""  
+slaughter_unit = ""  
+meat_type = ""       
+cut_date = ""        
+drugs_check = ""     
+bio_check = ""       
 
 # 加工日期仍留在網頁上供使用者調整
 st.write("---")
 col3, col4 = st.columns(2)
 with col3:
-    make_date = st.date_input("11. 製造日期", value=date(2025, 12, 20))
+    make_date = st.date_input("11. 製造日期", value=date.today())
 with col4:
-    valid_date = st.date_input("12. 有效日期", value=date(2026, 12, 19))
+    valid_date = st.date_input("12. 有效日期", value=date.today())
 
 # =================【2. 📸 產品包裝圖示上傳】=================
 st.write("---")
@@ -96,18 +101,21 @@ ws['A1'].font = font_title
 ws['A1'].alignment = align_center
 ws.row_dimensions.height = 50
 
+# 🌟 修正：將進貨日轉為 YYYY/M/D 斜線格式
+formatted_in_date = format_date_slash(in_date)
+
 # 區塊一：基本料號資訊表
 labels_v1 = [
     ('A2:B2', '料號', 'C2:D2', part_no),
     ('E2:F2', '供應商', 'G2:L2', supplier),
     ('A3:B3', '品名', 'C3:D3', product_name),
-    ('E3:F3', '進貨日', 'G3:L3', str(in_date))
+    ('E3:F3', '進貨日', 'G3:L3', formatted_in_date)
 ]
 for lbl_rng, lbl_txt, val_rng, val_txt in labels_v1:
     ws.merge_cells(lbl_rng)
     ws.merge_cells(val_rng)
-    ws[lbl_rng.split(':')[0]] = lbl_txt  
-    ws[val_rng.split(':')[0]] = val_txt  
+    ws[lbl_rng.split(':')] = lbl_txt  
+    ws[val_rng.split(':')] = val_txt  
     style_range(ws, lbl_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     style_range(ws, val_rng, font=font_body, alignment=align_center, border=border_all)
 ws.row_dimensions.height = 25
@@ -136,7 +144,7 @@ else:
     ws['A5'].font = font_body
     ws['A5'].alignment = align_center
 
-# 區塊三：原料肉資料 (5~10項在後端全部設為空字串，匯出即為空白格子)
+# 區塊三：原料肉資料 
 ws.merge_cells('A6:L6')
 ws['A6'] = "原料肉資料"
 style_range(ws, 'A6:L6', font=font_section, alignment=align_center, fill=fill_gray, border=border_all)
@@ -148,8 +156,8 @@ col_pairs = [('A7:B7','A8:B8'), ('C7:D7','C8:D8'), ('E7:F7','E8:F8'), ('G7:H7','
 for i, (h_rng, v_rng) in enumerate(col_pairs):
     ws.merge_cells(h_rng)
     ws.merge_cells(v_rng)
-    ws[h_rng.split(':')[0]] = headers_meat[i]  
-    ws[v_rng.split(':')[0]] = values_meat[i]  
+    ws[h_rng.split(':')] = headers_meat[i]  
+    ws[v_rng.split(':')] = values_meat[i]  
     style_range(ws, h_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     style_range(ws, v_rng, font=font_body, alignment=align_center, border=border_all)
 
@@ -158,10 +166,14 @@ ws.merge_cells('A9:L9')
 ws['A9'] = "產品加工資料"
 style_range(ws, 'A9:L9', font=font_section, alignment=align_center, fill=fill_gray, border=border_all)
 
+# 🌟 修正：將製造日期與有效日期轉為 YYYY/M/D 斜線格式
+formatted_make_date = format_date_slash(make_date)
+formatted_valid_date = format_date_slash(valid_date)
+
 labels_v4 = [
     ('A10:B10', '產品規格', 'C10:D10', ""),
-    ('E10:F10', '製造日期', 'G10:H10', str(make_date)),
-    ('I10:J10', '有效日期', 'K10:L10', str(valid_date)),
+    ('E10:F10', '製造日期', 'G10:H10', formatted_make_date),
+    ('I10:J10', '有效日期', 'K10:L10', formatted_valid_date),
     ('A11:B11', '產品批號', 'C11:D11', ""),
     ('E11:F11', '生產數量', 'G11:H11', ""),
     ('I11:J11', '備註說明', 'K11:L11', "")
@@ -169,8 +181,8 @@ labels_v4 = [
 for lbl_rng, lbl_txt, val_rng, val_txt in labels_v4:
     ws.merge_cells(lbl_rng)
     ws.merge_cells(val_rng)
-    ws[lbl_rng.split(':')[0]] = lbl_txt  
-    ws[val_rng.split(':')[0]] = val_txt  
+    ws[lbl_rng.split(':')] = lbl_txt  
+    ws[val_rng.split(':')] = val_txt  
     style_range(ws, lbl_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     style_range(ws, val_rng, font=font_body, alignment=align_center, border=border_all)
 ws.row_dimensions.height = 25
