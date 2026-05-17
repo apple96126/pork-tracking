@@ -244,92 +244,6 @@ def insert_large_photo_block(ws, title_text, file_objects, row_start):
         
     return img_row + 1
 
-# 2. 依序動態向下建立 4 個高解析大圖格子
-current_row = insert_large_photo_block(
-    ws,
-    "📷 項目一：產品包裝 + QR Code 截圖",
-    uploaded_image_files + [uploaded_qr_screenshot_1, uploaded_qr_screenshot_2],
-    current_row
-)
-current_row = insert_large_photo_block(
-    ws,
-    "📄 項目二：進貨單據 / 銷貨單收據證明",
-    uploaded_receipt_file,
-    current_row
-)
-
-# 調整固定欄寬
-for col in ['A','B','C','D','E','F','G','H','I','J','K','L']:
-    ws.column_dimensions[col].width = 11
-
-excel_data = io.BytesIO()
-wb.save(excel_data)
-excel_data.seek(0)
-
-import streamlit as st
-import io
-from PIL import Image as PILImage
-from openpyxl import Workbook
-from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
-from openpyxl.drawing.image import Image as OpenpyxlImage
-
-# 輔助函數：快速格式化儲存格區域
-def style_range(ws, cell_range, font=None, alignment=None, fill=None, border=None):
-    for row in ws[cell_range]:
-        for cell in row:
-            if font: cell.font = font
-            if alignment: cell.alignment = alignment
-            if fill: cell.fill = fill
-            if border: cell.border = border
-
-# 🌟 照片插入函數（保持原始解析度 + 自動欄寬）
-def insert_large_photo_block(ws, title_text, file_objects, row_start):
-    ws.merge_cells(f'A{row_start}:L{row_start}')
-    ws[f'A{row_start}'] = title_text
-    style_range(ws, f'A{row_start}:L{row_start}', font=Font(bold=True),
-                alignment=Alignment(horizontal="center", vertical="center"),
-                fill=PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid"),
-                border=Border(left=Side(style='thin'), right=Side(style='thin'),
-                              top=Side(style='thin'), bottom=Side(style='thin')))
-    ws.row_dimensions[row_start].height = 22
-    
-    img_row = row_start + 1
-    files = file_objects if isinstance(file_objects, list) else [file_objects]
-
-    if files and any(files):
-        ws.merge_cells(f'A{img_row}:L{img_row}')
-        style_range(ws, f'A{img_row}:L{img_row}', border=Border(left=Side(style='thin'),
-                                                                right=Side(style='thin'),
-                                                                top=Side(style='thin'),
-                                                                bottom=Side(style='thin')))
-        ws.row_dimensions[img_row].height = 250
-
-        total_cols = 12
-        col_span = total_cols // len(files)
-
-        for idx, f in enumerate(files):
-            if f is not None:
-                pil_img = PILImage.open(f)
-                img_stream = io.BytesIO()
-                pil_img.save(img_stream, format='PNG')
-                img_stream.seek(0)
-
-                start_col = chr(ord('A') + idx * col_span)
-                ws.add_image(OpenpyxlImage(img_stream), f'{start_col}{img_row}')
-
-                # 調整欄寬
-                for c in range(col_span):
-                    col_letter = chr(ord('A') + idx * col_span + c)
-                    ws.column_dimensions[col_letter].width = 20
-    else:
-        ws.merge_cells(f'A{img_row}:L{img_row}')
-        ws[f'A{img_row}'] = "（未上傳照片）"
-        ws[f'A{img_row}'].alignment = Alignment(horizontal="center", vertical="center")
-        ws.row_dimensions[img_row].height = 30
-    
-    return img_row + 1
-
-
 # =================【Excel 報表建立】=================
 wb = Workbook()
 ws = wb.active
@@ -348,9 +262,24 @@ ws.page_margins.bottom = 0.75
 ws.page_margins.header = 0.3
 ws.page_margins.footer = 0.3
 
-# 🌟 範例：插入一個照片區塊
-current_row = 1
-current_row = insert_large_photo_block(ws, "📷 產品包裝照片", [], current_row)
+# 依序動態向下建立 2 個高解析大圖格子
+current_row = 10
+current_row = insert_large_photo_block(
+    ws,
+    "📷 項目一：產品包裝 + QR Code 截圖",
+    uploaded_image_files + [uploaded_qr_screenshot_1, uploaded_qr_screenshot_2],
+    current_row
+)
+current_row = insert_large_photo_block(
+    ws,
+    "📄 項目二：進貨單據 / 銷貨單收據證明",
+    uploaded_receipt_file,
+    current_row
+)
+
+# 調整固定欄寬
+for col in ['A','B','C','D','E','F','G','H','I','J','K','L']:
+    ws.column_dimensions[col].width = 11
 
 # =================【存檔 + 下載按鈕】=================
 excel_data = io.BytesIO()
@@ -360,7 +289,7 @@ excel_data.seek(0)
 st.download_button(
     label="📥 下載 Excel 報表",
     data=excel_data,
-    file_name="加工肉品追蹤追溯表.xlsx",
+    file_name=f"加工肉品追蹤追溯表_{selected_sku_code}.xlsx",
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     use_container_width=True
 )
