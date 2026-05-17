@@ -30,7 +30,7 @@ PORK_HIERARCHY = {
         "ME-320039": {"品名": "1.2後腿絞肉206g", "需要QR": True},
         "ME-320040": {"品名": "預設肉品項目206g", "需要QR": True},
         "ME-320018": {"品名": "豬皮", "需要QR": False},
-        "ME-330036": {"品名": "中油角(1.5)", "幕後QR": False},
+        "ME-330036": {"品名": "中油角(1.5)", "需要QR": False},
         "ME-320043": {"品名": "梅花肉丁", "需要QR": False},
         "ME-330048": {"品名": "中油角", "需要QR": False}
     },
@@ -61,8 +61,9 @@ available_skus = PORK_HIERARCHY[supplier]
 sku_options = [f"{sku} - {info['品名']}" for sku, info in available_skus.items()]
 selected_sku_string = st.selectbox("2. 請選取產品品項", sku_options)
 
-selected_sku_code = selected_sku_string.split(" - ")
-product_name = available_skus[selected_sku_code]["品名"]
+selected_sku_code = selected_sku_string.split(" - ")[0]
+
+product_name = available_skus[selected_sku_code].get("品名", "未設定品名")
 need_qr_flow = available_skus[selected_sku_code].get("需要QR", False)
 
 col1, col2 = st.columns(2)
