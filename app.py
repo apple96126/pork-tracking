@@ -67,7 +67,6 @@ if st.button("🚀 匯出完美還原 Excel 報表", use_container_width=True):
     wb = Workbook()
     ws = wb.active
     ws.title = "加工肉品追蹤追溯表"
-    ws.views.sheetView.showGridLines = True
 
     # 定義樣式與字型
     font_title = Font(name="微軟正黑體", size=16, bold=True)
@@ -108,7 +107,7 @@ if st.button("🚀 匯出完美還原 Excel 報表", use_container_width=True):
     style_range(ws, 'A4:L4', font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     ws.row_dimensions.height = 20
 
-    # 包裝圖示圖片置放儲存格（A5:L5 大格子）
+    # 包裝圖示圖片置放儲格（A5:L5 大格子）
     ws.merge_cells('A5:L5')
     style_range(ws, 'A5:L5', border=border_all)
     ws.row_dimensions.height = 180  
@@ -181,4 +180,4 @@ if st.button("🚀 匯出完美還原 Excel 報表", use_container_width=True):
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         use_container_width=True
     )
-    st.success("🎉 網頁已精簡！請點擊上方按鈕下載最新報表。")
+    st.success("🎉 網頁優化成功！請點擊上方按鈕下載。")
