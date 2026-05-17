@@ -107,18 +107,19 @@ if need_qr_flow:
         uploaded_qr_screenshot_2 = st.file_uploader("請上傳次頁進階資訊截圖：", type=["jpg", "jpeg", "png"], key="qr_snap2")
 
 # =================【3. 後端 Excel 多圖嵌入與一鍵下載邏輯】=================
+# =================【3. 後端 Excel 多圖嵌入與一鍵下載邏輯】=================
 st.write("---")
 
 wb = Workbook()
 ws = wb.active
 ws.title = "加工肉品追蹤追溯表"
 
-# 🌟 新增 A4 列印設定與頁面縮放邏輯
-ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE  # 設定橫向列印，最適合 12 欄與多圖排版
-ws.page_setup.paperSize = ws.PAPERSIZE_A4             # 指定紙張大小為 A4
-ws.sheet_properties.pageSetUpPr.fitToPage = True      # 啟用符合頁面功能
-ws.page_setup.fitToWidth = 1                          # 強制所有欄位縮放到一頁寬度（不爆頁）
-ws.page_setup.fitToHeight = 0                         # 高度自動分頁（避免圖片太多時被過度壓縮）
+# 修改為 A4 直向列印設定
+ws.page_setup.orientation = ws.ORIENTATION_PORTRAIT   
+ws.page_setup.paperSize = ws.PAPERSIZE_A4             
+ws.sheet_properties.pageSetUpPr.fitToPage = True      
+ws.page_setup.fitToWidth = 1                          
+ws.page_setup.fitToHeight = 0                         
 
 font_title = Font(name="微軟正黑體", size=16, bold=True)
 font_section = Font(name="微軟正黑體", size=11, bold=True)
@@ -129,16 +130,16 @@ fill_gray = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="sol
 thin_border = Side(style='thin', color='000000')
 border_all = Border(left=thin_border, right=thin_border, top=thin_border, bottom=thin_border)
 
-# 統一設定欄寬：12個欄位每欄 13，總寬度更適合 A4 橫向清晰顯示
+# 統一設定欄寬：直向 A4 為了塞入 12 欄，將欄寬調整為 9.5 較為緊湊剛好
 for col in ['A','B','C','D','E','F','G','H','I','J','K','L']:
-    ws.column_dimensions[col].width = 13
+    ws.column_dimensions[col].width = 9.5
 
 # 寫入大標題
 ws.merge_cells('A1:L1')
 ws['A1'] = "瓦城泰統集團\n加工肉品追蹤追溯表"
 ws['A1'].font = font_title
 ws['A1'].alignment = align_center
-ws.row_dimensions[1].height = 45
+ws.row_dimensions.height = 45
 
 # 區塊一：基本料號資訊
 formatted_in_date = format_date_slash(in_date)
@@ -149,54 +150,55 @@ labels_v1 = [
 for lbl_rng, lbl_txt, val_rng, val_txt in labels_v1:
     ws.merge_cells(lbl_rng)
     ws.merge_cells(val_rng)
-    ws[lbl_rng.split(':')[0]] = lbl_txt  
-    ws[val_rng.split(':')[0]] = val_txt  
+    ws[lbl_rng.split(':')] = lbl_txt  
+    ws[val_rng.split(':')] = val_txt  
     style_range(ws, lbl_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     style_range(ws, val_rng, font=font_body, alignment=align_center, border=border_all)
-ws.row_dimensions[2].height = 24
-ws.row_dimensions[3].height = 24
+ws.row_dimensions.height = 24
+ws.row_dimensions.height = 24
 
 # 區塊二：產品包裝與 QR 查驗圖示 (🌟 指定列高 247.50)
 ws.merge_cells('A4:L4')
 ws['A4'] = "產品包裝圖示 (包含特定品項之 QR Code 履歷查驗與進階截圖證明)"
 style_range(ws, 'A4:L4', font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
-ws.row_dimensions[4].height = 20
+ws.row_dimensions.height = 20
 
-# 🌟 設定指定列高：247.50 
-ws.row_dimensions[5].height = 247.50  
+# 🌟 核心改動：將 A5:L5 全部合併為一整欄超大格子，徹底拔除中間所有的垂直線！
+ws.merge_cells('A5:L5')
+style_range(ws, 'A5:L5', border=border_all)
+ws.row_dimensions.height = 247.50  
 
 # 整合所有要並排的照片 (1.包裝圖, 3.QR截圖, 4.進階截圖)
 all_images_to_pack = []
 if uploaded_image_files:
-    for f in uploaded_image_files[:3]: # 最多前 3 張包裝圖
+    for f in uploaded_image_files[:3]: 
         all_images_to_pack.append(f)
 if uploaded_qr_screenshot_1 is not None:
     all_images_to_pack.append(uploaded_qr_screenshot_1)
 if uploaded_qr_screenshot_2 is not None:
     all_images_to_pack.append(uploaded_qr_screenshot_2)
 
-# 每兩欄合併為一個圖區（共 6 個起點：A5, C5, E5, G5, I5, K5）
-target_columns = ['A5', 'C5', 'E5', 'G5', 'I5', 'K5']
-target_ranges = ['A5:B5', 'C5:D5', 'E5:F5', 'G5:H5', 'I5:J5', 'K5:L5']
-
-for rng in target_ranges:
-    ws.merge_cells(rng)
-    style_range(ws, rng, border=border_all)
-
 if all_images_to_pack:
+    # 🌟 透過精算 X 軸偏移量，讓照片在 A5 大格子內由左至右漂亮橫向排開
+    # 直向 A4 總寬下，130 像素寬的圖片平分最為清晰且剛好
     for idx, img_file in enumerate(all_images_to_pack[:6]):
-        if idx < len(target_columns):
-            pil_img = PILImage.open(img_file)
-            # 等比例縮放：寬度上限 180 像素，高度上限 310 像素
-            pil_img.thumbnail((180, 310))
-            
-            img_stream = io.BytesIO()
-            pil_img.save(img_stream, format='PNG')
-            img_stream.seek(0)
-            
-            img_obj = OpenpyxlImage(img_stream)
-            img_obj.anchor = target_columns[idx]
-            ws.add_image(img_obj)
+        pil_img = PILImage.open(img_file)
+        pil_img.thumbnail((130, 310))
+        
+        img_stream = io.BytesIO()
+        pil_img.save(img_stream, format='PNG')
+        img_stream.seek(0)
+        
+        img_obj = OpenpyxlImage(img_stream)
+        
+        # 使用 openpyxl 的 OneCellAnchor 定位：
+        # 錨定在 A5 格子，透過索引 idx 來平移每張圖片的橫向起點 (X 軸)
+        # 每張圖間隔 145 像素 (包含圖寬 130 + 微調留白 15)，左邊留白 20 像素
+        img_obj.anchor = "A5"
+        img_obj.drawing.left = 20 + (idx * 145)
+        img_obj.drawing.top = 10  # 頂部稍微留白，看起來更精緻
+        
+        ws.add_image(img_obj)
 else:
     ws['A5'] = "（現場未上傳包裝或查驗照片）"
     ws['A5'].font = font_body
@@ -206,7 +208,7 @@ else:
 ws.merge_cells('A6:L6')
 ws['A6'] = "原料肉資料"
 style_range(ws, 'A6:L6', font=font_section, alignment=align_center, fill=fill_gray, border=border_all)
-ws.row_dimensions[6].height = 22
+ws.row_dimensions.height = 22
 
 headers_meat = ['屠宰日期', '屠宰單位', '原料肉名稱', '原料肉分切日期', '動物用藥檢驗', '微生物檢驗']
 values_meat = [slaughter_date, slaughter_unit, meat_type, cut_date, drugs_check, bio_check]
@@ -214,18 +216,18 @@ col_pairs = [('A7:B7','A8:B8'), ('C7:D7','C8:D8'), ('E7:F7','E8:F8'), ('G7:H7','
 for i, (h_rng, v_rng) in enumerate(col_pairs):
     ws.merge_cells(h_rng)
     ws.merge_cells(v_rng)
-    ws[h_rng.split(':')[0]] = headers_meat[i]  
-    ws[v_rng.split(':')[0]] = values_meat[i]  
+    ws[h_rng.split(':')] = headers_meat[i]  
+    ws[v_rng.split(':')] = values_meat[i]  
     style_range(ws, h_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     style_range(ws, v_rng, font=font_body, alignment=align_center, border=border_all)
-ws.row_dimensions[7].height = 24
-ws.row_dimensions[8].height = 24
+ws.row_dimensions.height = 24
+ws.row_dimensions.height = 24
 
 # 區塊四：產品加工資料
 ws.merge_cells('A9:L9')
 ws['A9'] = "產品加工資料"
 style_range(ws, 'A9:L9', font=font_section, alignment=align_center, fill=fill_gray, border=border_all)
-ws.row_dimensions[9].height = 22
+ws.row_dimensions.height = 22
 
 formatted_make_date = format_date_slash(make_date)
 formatted_valid_date = format_date_slash(valid_date)
@@ -236,28 +238,26 @@ labels_v4 = [
 for lbl_rng, lbl_txt, val_rng, val_txt in labels_v4:
     ws.merge_cells(lbl_rng)
     ws.merge_cells(val_rng)
-    ws[lbl_rng.split(':')[0]] = lbl_txt  
-    ws[val_rng.split(':')[0]] = val_txt  
+    ws[lbl_rng.split(':')] = lbl_txt  
+    ws[val_rng.split(':')] = val_txt  
     style_range(ws, lbl_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     style_range(ws, val_rng, font=font_body, alignment=align_center, border=border_all)
-ws.row_dimensions[10].height = 24
-ws.row_dimensions[11].height = 24
+ws.row_dimensions.height = 24
+ws.row_dimensions.height = 24
 
 # 區塊五：相關進貨單據 (🌟 指定列高 355.90)
 ws.merge_cells('A12:L12')
 ws['A12'] = "相關進貨單據 / 銷貨單收據證明"
 style_range(ws, 'A12:L12', font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
-ws.row_dimensions[12].height = 20
+ws.row_dimensions.height = 20
 
 ws.merge_cells('A13:L13')
 style_range(ws, 'A13:L13', border=border_all)
-# 🌟 設定指定列高：355.90
-ws.row_dimensions[13].height = 355.90  
+ws.row_dimensions.height = 355.90  
 
 if uploaded_receipt_file is not None:
     pil_receipt = PILImage.open(uploaded_receipt_file)
-    # 等比例縮放：寬度上限 1000 像素，高度上限 450 像素
-    pil_receipt.thumbnail((1000, 450))
+    pil_receipt.thumbnail((750, 450))
     
     img_byte_arr2 = io.BytesIO()
     pil_receipt.save(img_byte_arr2, format='PNG')
@@ -276,11 +276,12 @@ excel_data = io.BytesIO()
 wb.save(excel_data)
 excel_data.seek(0)
 
+download_filename = f"{supplier}_{selected_sku_code}_{product_name}.xlsx"
+
 st.download_button(
     label="📥 下載 Excel 報表",
     data=excel_data,
-    file_name=f"加工肉品追蹤追溯表_{selected_sku_code}.xlsx",
+    file_name=download_filename,
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     use_container_width=True
 )
-
