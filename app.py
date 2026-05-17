@@ -113,6 +113,13 @@ wb = Workbook()
 ws = wb.active
 ws.title = "加工肉品追蹤追溯表"
 
+# 🌟 新增 A4 列印設定與頁面縮放邏輯
+ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE  # 設定橫向列印，最適合 12 欄與多圖排版
+ws.page_setup.paperSize = ws.PAPERSIZE_A4             # 指定紙張大小為 A4
+ws.sheet_properties.pageSetUpPr.fitToPage = True      # 啟用符合頁面功能
+ws.page_setup.fitToWidth = 1                          # 強制所有欄位縮放到一頁寬度（不爆頁）
+ws.page_setup.fitToHeight = 0                         # 高度自動分頁（避免圖片太多時被過度壓縮）
+
 font_title = Font(name="微軟正黑體", size=16, bold=True)
 font_section = Font(name="微軟正黑體", size=11, bold=True)
 font_grid_header = Font(name="微軟正黑體", size=10, bold=True)
@@ -155,7 +162,7 @@ ws['A4'] = "產品包裝圖示 (包含特定品項之 QR Code 履歷查驗與進
 style_range(ws, 'A4:L4', font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
 ws.row_dimensions[4].height = 20
 
-# 🌟 設定指定列高：247.50 (約可容納高度 330 像素的圖片)
+# 🌟 設定指定列高：247.50 
 ws.row_dimensions[5].height = 247.50  
 
 # 整合所有要並排的照片 (1.包裝圖, 3.QR截圖, 4.進階截圖)
@@ -168,7 +175,7 @@ if uploaded_qr_screenshot_1 is not None:
 if uploaded_qr_screenshot_2 is not None:
     all_images_to_pack.append(uploaded_qr_screenshot_2)
 
-# 每兩欄合併為一個圖區（共 6 個起點：A5, C5, E5, G5, I5, K5），讓照片有充分的寬度展現清晰度
+# 每兩欄合併為一個圖區（共 6 個起點：A5, C5, E5, G5, I5, K5）
 target_columns = ['A5', 'C5', 'E5', 'G5', 'I5', 'K5']
 target_ranges = ['A5:B5', 'C5:D5', 'E5:F5', 'G5:H5', 'I5:J5', 'K5:L5']
 
@@ -180,7 +187,7 @@ if all_images_to_pack:
     for idx, img_file in enumerate(all_images_to_pack[:6]):
         if idx < len(target_columns):
             pil_img = PILImage.open(img_file)
-            # 等比例縮放：寬度上限 180 像素，高度上限 310 像素（完美匹配 247.50 列高，確保高畫質）
+            # 等比例縮放：寬度上限 180 像素，高度上限 310 像素
             pil_img.thumbnail((180, 310))
             
             img_stream = io.BytesIO()
@@ -188,7 +195,6 @@ if all_images_to_pack:
             img_stream.seek(0)
             
             img_obj = OpenpyxlImage(img_stream)
-            # 微調偏移量，讓圖片在格子內完美居中
             img_obj.anchor = target_columns[idx]
             ws.add_image(img_obj)
 else:
@@ -250,7 +256,7 @@ ws.row_dimensions[13].height = 355.90
 
 if uploaded_receipt_file is not None:
     pil_receipt = PILImage.open(uploaded_receipt_file)
-    # 等比例縮放：寬度上限 1000 像素，高度上限 450 像素（完美匹配 355.90 列高，呈現清晰大圖）
+    # 等比例縮放：寬度上限 1000 像素，高度上限 450 像素
     pil_receipt.thumbnail((1000, 450))
     
     img_byte_arr2 = io.BytesIO()
