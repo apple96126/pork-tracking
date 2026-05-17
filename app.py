@@ -190,8 +190,7 @@ ws.row_dimensions.height = 24
 current_row = 10  # 紀錄目前 Excel 已經寫到第幾行
 
 def insert_large_photo_block(ws, title_text, file_objects, row_start):
-    """橫跨 A~L 欄建立大型圖示區塊，並自動依圖片比例拉開行高"""
-    # 1. 寫入該照片的區塊小標題
+    """橫跨 A~L 欄建立大型圖示區塊，並依標題自動判斷列高與欄寬"""
     ws.merge_cells(f'A{row_start}:L{row_start}')
     ws[f'A{row_start}'] = title_text
     style_range(ws, f'A{row_start}:L{row_start}', font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
@@ -200,37 +199,34 @@ def insert_large_photo_block(ws, title_text, file_objects, row_start):
     img_row = row_start + 1
     
     if file_objects:
-        # 如果是多張（清單），就跑巡迴往下蓋樓
+        ws.merge_cells(f'A{img_row}:L{img_row}')
+        style_range(ws, f'A{img_row}:L{img_row}', border=border_all)
+
+        # 🌟 自動判斷列高
+        if "產品包裝" in title_text or "QR Code" in title_text:
+            ws.row_dimensions[img_row].height = 247.50
+        elif "進貨單據" in title_text or "銷貨單" in title_text:
+            ws.row_dimensions[img_row].height = 355.90
+        else:
+            ws.row_dimensions[img_row].height = 200  # 預設值
+
+        # 🌟 自動欄位寬度調整：每張圖平均分配 A~L 欄
+        total_cols = 12
         files = file_objects if isinstance(file_objects, list) else [file_objects]
-        for f in files:
+        col_span = total_cols // len(files) if len(files) > 0 else total_cols
+
+        for idx, f in enumerate(files):
             if f is not None:
-                # 合併這一列的 A~L 欄作為放置大圖的底盤
-                ws.merge_cells(f'A{img_row}:L{img_row}')
-                style_range(ws, f'A{img_row}:L{img_row}', border=border_all)
-                
-                # 讀取並放大照片：寬度加寬至 500 像素，維持極高清晰度
                 pil_img = PILImage.open(f)
-                w, h = pil_img.size
-                scale_ratio = 500 / float(w)
-                new_h = int(float(h) * scale_ratio)
-                
-                # 🌟 核心防呆：限制最高 450 像素避免單張圖過長，並將 PIL 圖片轉換為 Excel 可以讀的格式
-                pil_img.thumbnail((500, 450))
-                final_w, final_h = pil_img.size
-                
+                pil_img.thumbnail((250, 250))
                 img_stream = io.BytesIO()
                 pil_img.save(img_stream, format='PNG')
                 img_stream.seek(0)
-                
-                # 🌟 神奇的自動拉開行高：將圖片的像素高度，精準換算成 Excel 的 Row Height 點數
-                excel_row_height = int(final_h * 0.75) + 15
-                ws.row_dimensions[img_row].height = excel_row_height
-                
-                # 將大圖塞入 A 欄起點
-                ws.add_image(OpenpyxlImage(img_stream), f'A{img_row}')
-                img_row += 1
+
+                # 計算起始欄位
+                start_col = chr(ord('A') + idx * col_span)
+                ws.add_image(OpenpyxlImage(img_stream), f'{start_col}{img_row}')
     else:
-        # 未上傳時建立一個小小的留白格子
         ws.merge_cells(f'A{img_row}:L{img_row}')
         ws[f'A{img_row}'] = "（現場同仁未上傳/拍攝此項目照片證明）"
         ws[f'A{img_row}'].font = font_body
@@ -239,15 +235,21 @@ def insert_large_photo_block(ws, title_text, file_objects, row_start):
         ws.row_dimensions[img_row].height = 30
         img_row += 1
         
-    return img_row
+    return img_row + 1
 
 # 2. 依序動態向下建立 4 個高解析大圖格子
-current_row = insert_large_photo_block(ws, "📷 項目一：產品包裝圖示證明", uploaded_image_files, current_row)
-current_row = insert_large_photo_block(ws, "📄 項目二：相關進貨單據 / 銷貨單收據證明", uploaded_receipt_file, current_row)
-
-if need_qr_flow:
-    current_row = insert_large_photo_block(ws, "🔍 特定品項 - 項目三：QR Code 產銷履歷查驗特定範圍截圖", uploaded_qr_screenshot_1, current_row)
-    current_row = insert_large_photo_block(ws, "📱 特定品項 - 項目四：進入下個頁面之進階截圖證明", uploaded_qr_screenshot_2, current_row)
+current_row = insert_large_photo_block(
+    ws,
+    "📷 項目一：產品包裝 + QR Code 截圖",
+    uploaded_image_files + [uploaded_qr_screenshot_1, uploaded_qr_screenshot_2],
+    current_row
+)
+current_row = insert_large_photo_block(
+    ws,
+    "📄 項目二：進貨單據 / 銷貨單收據證明",
+    uploaded_receipt_file,
+    current_row
+)
 
 # 調整固定欄寬
 for col in ['A','B','C','D','E','F','G','H','I','J','K','L']:
