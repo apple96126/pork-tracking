@@ -107,6 +107,62 @@ if need_qr_flow:
         uploaded_qr_screenshot_2 = st.file_uploader("請上傳次頁進階資訊截圖：", type=["jpg", "jpeg", "png"], key="qr_snap2")
 
 # =================【3. 後端 Excel 多圖嵌入與一鍵下載邏輯】=================
+import io
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email import encoders
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment, PatternFill, Side, Border
+from openpyxl.drawing.image import Image as OpenpyxlImage
+from PIL import Image as PILImage
+import streamlit as st
+
+# --- 💡 新增：Gmail 寄送函式 ---
+def send_via_gmail(to_email, excel_bytes, filename):
+    smtp_server = "://gmail.com"
+    smtp_port = 587
+    
+    # 建議改用 st.secrets 讀取，若要測試可先填字串
+    sender_email = st.secrets.get("GMAIL_USER", "您的Gmail帳號@gmail.com")
+    sender_password = st.secrets.get("GMAIL_PASSWORD", "您的16位應用程式密碼")
+
+    msg = MIMEMultipart()
+    msg['From'] = sender_email
+    msg['To'] = to_email
+    msg['Subject'] = f"📊 【肉品追溯表】{filename.replace('.xlsx', '')}"
+    
+    body = f"您好：\n\n系統已自動生成「{filename}」加工肉品追蹤追溯表，請查收附件。\n\n此為系統自動發送郵件，請勿直接回覆。"
+    msg.attach(MIMEText(body, 'plain', 'utf-8'))
+
+    part = MIMEBase('application', 'vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    part.set_payload(excel_bytes)
+    encoders.encode_base64(part)
+    part.add_header('Content-Disposition', f'attachment; filename="{filename}"')
+    msg.attach(part)
+
+    with smtplib.SMTP(smtp_server, smtp_port) as server:
+        server.starttls()
+        server.login(sender_email, sender_password)
+        server.send_message(msg)
+
+# --- 💡 新增：Streamlit 彈出輸入視窗 ---
+@st.dialog("寄送報表至信箱")
+def email_dialog(data_bytes, filename):
+    user_email = st.text_input("請輸入您的電子信箱：", placeholder="example@gmail.com")
+    if st.button("確認寄送", use_container_width=True):
+        if user_email and "@" in user_email: # 簡易檢查信箱格式
+            with st.spinner("郵件傳送中，請稍候..."):
+                try:
+                    send_via_gmail(user_email, data_bytes, filename)
+                    st.success("報表已成功寄出！請至您的信箱查收。")
+                except Exception as e:
+                    st.error(f"寄送失敗！請確認密碼設定。錯誤原因: {e}")
+        else:
+            st.warning("請輸入正確且有效的電子信箱地址。")
+
+# --- 以下為您原本的 Excel 產製邏輯 ---
 st.write("---")
 
 wb = Workbook()
@@ -129,7 +185,7 @@ fill_gray = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="sol
 thin_border = Side(style='thin', color='000000')
 border_all = Border(left=thin_border, right=thin_border, top=thin_border, bottom=thin_border)
 
-# 統一設定欄寬：直向 A4 為了塞入 12 欄，將欄寬調整為 9.5 較為緊湊剛好
+# 統一設定欄寬
 for col in ['A','B','C','D','E','F','G','H','I','J','K','L']:
     ws.column_dimensions[col].width = 9.5
 
@@ -154,20 +210,17 @@ for lbl_rng, lbl_txt, val_rng, val_txt in labels_v1:
     style_range(ws, lbl_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     style_range(ws, val_rng, font=font_body, alignment=align_center, border=border_all)
 ws.row_dimensions.height = 24
-ws.row_dimensions.height = 24
 
-# 區塊二：產品包裝與 QR 查驗圖示 (🌟 指定列高 247.50)
+# 區塊二：產品包裝與 QR 查驗圖示
 ws.merge_cells('A4:L4')
 ws['A4'] = "產品包裝圖示 (包含特定品項之 QR Code 履歷查驗與進階截圖證明)"
 style_range(ws, 'A4:L4', font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
 ws.row_dimensions.height = 20
 
-# 🌟 大合併 A5:L5，徹底去除格子內部的所有格線
 ws.merge_cells('A5:L5')
 style_range(ws, 'A5:L5', border=border_all)
-ws.row_dimensions[5].height = 247.50  # 修正：精確指定第 5 行的列高
+ws.row_dimensions[5].height = 247.50  
 
-# 整合所有要並排的照片 (1.包裝圖, 3.QR截圖, 4.進階截圖)
 all_images_to_pack = []
 if uploaded_image_files:
     for f in uploaded_image_files[:3]: 
@@ -177,16 +230,12 @@ if uploaded_qr_screenshot_1 is not None:
 if uploaded_qr_screenshot_2 is not None:
     all_images_to_pack.append(uploaded_qr_screenshot_2)
 
-# 🌟 修正排版逻辑：
-# 即使 A5:L5 已經合併，我們依然可以將圖片擺放在對應的虛擬欄位起點（每兩欄一個起點，共 6 個位置）
-# 這樣能達到完美的橫向平分、不留內部線條，且完全避免代碼噴錯！
 target_columns = ['A5', 'C5', 'E5', 'G5', 'I5', 'K5']
 
 if all_images_to_pack:
     for idx, img_file in enumerate(all_images_to_pack[:6]):
         if idx < len(target_columns):
             pil_img = PILImage.open(img_file)
-            # 等比例縮放：配合直向 A4 單格大小，設定最安全清晰的圖片尺寸
             pil_img.thumbnail((150, 310))
             
             img_stream = io.BytesIO()
@@ -194,7 +243,7 @@ if all_images_to_pack:
             img_stream.seek(0)
             
             img_obj = OpenpyxlImage(img_stream)
-            img_obj.anchor = target_columns[idx]  # 錨定在虛擬起點欄位
+            img_obj.anchor = target_columns[idx]  
             ws.add_image(img_obj)
 else:
     ws['A5'] = "（現場未上傳包裝或查驗照片）"
@@ -218,7 +267,6 @@ for i, (h_rng, v_rng) in enumerate(col_pairs):
     style_range(ws, h_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     style_range(ws, v_rng, font=font_body, alignment=align_center, border=border_all)
 ws.row_dimensions.height = 24
-ws.row_dimensions.height = 24
 
 # 區塊四：產品加工資料
 ws.merge_cells('A9:L9')
@@ -240,9 +288,8 @@ for lbl_rng, lbl_txt, val_rng, val_txt in labels_v4:
     style_range(ws, lbl_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     style_range(ws, val_rng, font=font_body, alignment=align_center, border=border_all)
 ws.row_dimensions.height = 24
-ws.row_dimensions.height = 24
 
-# 區塊五：相關進貨單據 (🌟 指定列高 355.90)
+# 區塊五：相關進貨單據
 ws.merge_cells('A12:L12')
 ws['A12'] = "相關進貨單據 / 銷貨單收據證明"
 style_range(ws, 'A12:L12', font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
@@ -250,7 +297,7 @@ ws.row_dimensions.height = 20
 
 ws.merge_cells('A13:L13')
 style_range(ws, 'A13:L13', border=border_all)
-ws.row_dimensions[13].height = 355.90  # 修正：精確指定第 13 行的列高
+ws.row_dimensions[13].height = 355.90  
 
 if uploaded_receipt_file is not None:
     pil_receipt = PILImage.open(uploaded_receipt_file)
@@ -268,18 +315,33 @@ else:
     ws['A13'].font = font_body
     ws['A13'].alignment = align_center
 
-# 匯出與下載處理
+# 匯出資料準備
 excel_data = io.BytesIO()
 wb.save(excel_data)
 excel_data.seek(0)
+raw_bytes = excel_data.getvalue() # 轉換為 bytes 供郵件與下載重複使用
 
 download_filename = f"{supplier}_{selected_sku_code}_{product_name}.xlsx"
 
-st.download_button(
-    label="📥 下載 Excel 報表",
-    data=excel_data,
-    file_name=download_filename,
-    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    use_container_width=True
+
+# --- 💡 新增：底端一鍵雙功能按鈕區塊 ---
+st.markdown("### 💾 報表匯出與存檔")
+col1, col2 = st.columns(2)
+
+with col1:
+    # 功能一：本機點擊直接下載
+    st.download_button(
+        label="📥 下載 Excel 報表 (儲存至本機)",
+        data=raw_bytes,
+        file_name=download_filename,
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        use_container_width=True
+    )
+
+with col2:
+    # 功能二：觸發彈出視窗輸入信箱寄送
+    if st.button("✉️ 寄送至電子信箱", use_container_width=True):
+        email_dialog(raw_bytes, download_filename)
+
 )
 
