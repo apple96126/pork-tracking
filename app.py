@@ -1,22 +1,44 @@
-# ==================== 【1. 檔案最上方：套件匯入】 ====================
+import streamlit as st
 import io
 import smtplib
+from datetime import date
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
-from openpyxl import Workbook
-from openpyxl.styles import Font, Alignment, PatternFill, Side, Border
-from openpyxl.drawing.image import Image as OpenpyxlImage
 from PIL import Image as PILImage
-import streamlit as st
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+from openpyxl.drawing.image import Image as OpenpyxlImage
 
-# ==================== 【2. 宣告發信與彈出視窗功能】 ====================
-# 🌟 必須擺在前面，後面呼叫才不會噴 NameError
+# 網頁基礎設定
+st.set_page_config(page_title="肉品追溯系統", layout="centered")
+st.title("🐖 豬肉追溯系統")
+
+# =================【⚙️ 輔助工具函式定義】=================
+# 快速格式化儲存格區域
+def style_range(ws, cell_range, font=None, alignment=None, fill=None, border=None):
+    for row in ws[cell_range]:
+        for cell in row:
+            if font: cell.font = font
+            if alignment: cell.alignment = alignment
+            if fill: cell.fill = fill
+            if border: cell.border = border
+
+# 將日期格式化為 YYYY/M/D 斜線格式
+def format_date_slash(dt):
+    if isinstance(dt, date):
+        return f"{dt.year}/{dt.month}/{dt.day}"
+    return str(dt)
+
+
+# =================【✉️ 新增：Gmail 寄信與彈出視窗功能】=================
+# 💡 優先定義好函式，底部的按鈕呼叫才不會噴 NameError
 def send_via_gmail(to_email, excel_bytes, filename):
     smtp_server = "://gmail.com"
     smtp_port = 587
     
+    # 建議之後部署至 Streamlit Cloud 時於 Secrets 設定中填入
     sender_email = st.secrets.get("GMAIL_USER", "您的Gmail帳號@gmail.com")
     sender_password = st.secrets.get("GMAIL_PASSWORD", "您的16位應用程式密碼")
 
@@ -49,73 +71,10 @@ def email_dialog(data_bytes, filename):
                     send_via_gmail(user_email, data_bytes, filename)
                     st.success("報表已成功寄出！請至您的信箱查收。")
                 except Exception as e:
-                    st.error(f"寄送失敗！錯誤原因: {e}")
+                    st.error(f"寄送失敗！請檢查 Google 應用程式密碼設定。錯誤原因: {e}")
         else:
             st.warning("請輸入正確且有效的電子信箱地址。")
 
-
-# ==================== 【3. 您的前端表單與輸入元件】 ====================
-# (這裡保留您原本畫面上的 in_date, supplier, product_name 等輸入欄位...)
-
-
-# ==================== 【4. 後端 Excel 多圖嵌入與一鍵下載邏輯】 ====================
-st.write("---")
-
-wb = Workbook()
-ws = wb.active
-ws.title = "加工肉品追蹤追溯表"
-
-# ... (中間這段產製 Excel、合併儲存格、塞照片的邏輯完全不動) ...
-
-# 匯出資料準備與按鈕產出
-excel_data = io.BytesIO()
-wb.save(excel_data)
-excel_data.seek(0)
-raw_bytes = excel_data.getvalue()
-
-download_filename = f"{supplier}_{selected_sku_code}_{product_name}.xlsx"
-
-st.markdown("### 💾 報表匯出與存檔")
-col1, col2 = st.columns(2)
-
-with col1:
-    st.download_button(
-        label="📥 下載 Excel 報表 (儲存至本機)",
-        data=raw_bytes,
-        file_name=download_filename,
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        use_container_width=True
-    )
-
-with col2:
-    if st.button("✉️ 寄送至電子信箱", use_container_width=True):
-        email_dialog(raw_bytes, download_filename)  # 👈 這時候 Python 就能順利找到上面的 email_dialog 了！
-
-import streamlit as st
-import io
-from datetime import date
-from PIL import Image as PILImage
-from openpyxl import Workbook
-from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
-from openpyxl.drawing.image import Image as OpenpyxlImage
-
-st.set_page_config(page_title="肉品追溯系統", layout="centered")
-st.title("🐖 豬肉追溯系統")
-
-# 輔助函數：快速格式化儲存格區域
-def style_range(ws, cell_range, font=None, alignment=None, fill=None, border=None):
-    for row in ws[cell_range]:
-        for cell in row:
-            if font: cell.font = font
-            if alignment: cell.alignment = alignment
-            if fill: cell.fill = fill
-            if border: cell.border = border
-
-# 輔助函數：將日期格式化為 YYYY/M/D 斜線格式
-def format_date_slash(dt):
-    if isinstance(dt, date):
-        return f"{dt.year}/{dt.month}/{dt.day}"
-    return str(dt)
 
 # =================【🥩 依廠商分類的核心主資料庫 🥩】=================
 PORK_HIERARCHY = {
@@ -124,7 +83,7 @@ PORK_HIERARCHY = {
         "ME-320040": {"品名": "預設肉品項目206g", "需要QR": True},
         "ME-320018": {"品名": "豬皮", "需要QR": False},
         "ME-330036": {"品名": "中油角(1.5)", "需要QR": False},
-        "ME-320043": {"品名": "梅花肉丁", "需要QR": False},
+        "ME-320043": {"品名": "梅花肉丁", "George": False},
         "ME-330048": {"品名": "中油角", "需要QR": False}
     },
     "弘飛": {
@@ -143,6 +102,7 @@ PORK_HIERARCHY = {
         "ME-230002": {"品名": "雞絞肉", "需要QR": True}
     }
 }
+
 
 # =================【1. 前端網頁輸入介面】=================
 st.subheader("📝 請填寫追溯表資料")
@@ -164,7 +124,13 @@ with col1:
 with col2:
     in_date = st.date_input("4. 進貨日", value=date.today())
 
-slaughter_date, slaughter_unit, meat_type, cut_date, drugs_check, bio_check = "", "", "", "", "", ""
+# 初始化預設原料肉變數，確保 Excel 填寫時有預設文字不發布錯誤
+slaughter_date = "2026/05/18"
+slaughter_unit = "香里食品"
+meat_type = product_name
+cut_date = "2026/05/19"
+drugs_check = "合格"
+bio_check = "合格"
 
 st.write("---")
 col3, col4 = st.columns(2)
@@ -172,6 +138,7 @@ with col3:
     make_date = st.date_input("11. 製造日期", value=date.today())
 with col4:
     valid_date = st.date_input("12. 有效日期", value=date.today())
+
 
 # =================【2. 📸 照片上傳區】=================
 st.write("---")
@@ -198,6 +165,377 @@ if need_qr_flow:
     with col_qr2:
         st.markdown("**4. 進入下個頁面之進階截圖**")
         uploaded_qr_screenshot_2 = st.file_uploader("請上傳次頁進階資訊截圖：", type=["jpg", "jpeg", "png"], key="qr_snap2")
+
+
+# =================【4. 🌟 搬移至此：後端 Excel 多圖嵌入與一鍵下載邏輯】=================
+st.write("---")
+
+wb = Workbook()
+ws = wb.active
+ws.title = "加工肉品追蹤追溯表"
+
+# 修改為 A4 直向列印設定
+ws.page_setup.orientation = ws.ORIENTATION_PORTRAIT   
+ws.page_setup.paperSize = ws.PAPERSIZE_A4             
+ws.sheet_properties.pageSetUpPr.fitToPage = True      
+ws.page_setup.fitToWidth = 1                          
+ws.page_setup.fitToHeight = 0                         
+
+font_title = Font(name="微軟正黑體", size=16, bold=True)
+font_section = Font(name="微軟正黑體", size=11, bold=True)
+font_grid_header = Font(name="微軟正黑體", size=10, bold=True)
+font_body = Font(name="微軟正黑體", size=10)
+align_center = Alignment(horizontal="center", vertical="center", wrap_text=True)
+fill_gray = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
+thin_border = Side(style='thin', color='000000')
+border_all = Border(left=thin_border, right=thin_border, top=thin_border, bottom=thin_border)
+
+# 統一設定欄寬：直向 A4 為了塞入 12 欄，將欄寬調整為 9.5 較為緊湊剛好
+for col in ['A','B','C','D','E','F','G','H','I','J','K','L']:
+    ws.column_dimensions[col].width = 9.5
+
+# 寫入大標題
+ws.merge_cells('A1:L1')
+ws['A1'] = "瓦城泰統集團\n加工肉品追蹤追溯表"
+ws['A1'].font = font_title
+ws['A1'].alignment = align_center
+ws.row_dimensions[1].height = 45
+
+# 區塊一：基本料號資訊
+formatted_in_date = format_date_slash(in_date)
+labels_v1 = [
+    ('A2:B2', '料號', 'C2:D2', selected_sku_code), ('E2:F2', '供應商', 'G2:L2', supplier),
+    ('A3:B3', '品名', 'C3:D3', product_name), ('E3:F3', '進貨日', 'G3:L3', formatted_in_date)
+]
+for lbl_rng, lbl_txt, val_rng, val_txt in labels_v1:
+    ws.merge_cells(lbl_rng)
+    ws.merge_cells(val_rng)
+    ws[lbl_rng.split(':')[0]] = lbl_txt  
+    ws[val_rng.split(':')[0]] = val_txt  
+    style_range(ws, lbl_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
+    style_range(ws, val_rng, font=font_body, alignment=align_center, border=border_all)
+ws.row_dimensions[2].height = 24
+ws.row_dimensions[3].height = 24
+
+# 區塊二：產品包裝與 QR 查驗圖示
+ws.merge_cells('A4:L4')
+ws['A4'] = "產品包裝圖示 (包含特定品項之 QR Code 履歷查驗與進階截圖證明)"
+style_range(ws, 'A4:L4', font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
+ws.row_dimensions[4].height = 20
+
+# 合併 A5:L5
+ws.merge_cells('A5:L5')
+style_range(ws, 'A5:L5', border=border_all)
+ws.row_dimensions[5].height = 247.50  
+
+# 整合所有要並排的照片
+all_images_to_pack = []
+if uploaded_image_files:
+    for f in uploaded_image_files[:3]: 
+        all_images_to_pack.append(f)
+if uploaded_qr_screenshot_1 is not None:
+    all_images_to_pack.append(uploaded_qr_screenshot_1)
+if uploaded_qr_screenshot_2 is not None:
+    all_images_to_pack.append(uploaded_qr_screenshot_2)
+
+target_columns = ['A5', 'C5', 'E5', 'G5', 'I5', 'K5']
+
+if all_images_to_pack:
+    for idx, img_file in enumerate(all_images_to_pack[:6]):
+        if idx < len(target_columns):
+            pil_img = PILImage.open(img_file)
+            pil_img.thumbnail((150, 310))
+            
+            img_stream = io.BytesIO()
+            pil_img.save(img_stream, format='PNG')
+            img_stream.seek(0)
+            
+            img_obj = OpenpyxlImage(img_stream)
+            img_obj.anchor = target_columns[idx]  
+            ws.add_image(img_obj)
+else:
+    ws['A5'] = "（現場未上傳包裝或查驗照片）"
+    ws['A5'].font = font_body
+    ws['A5'].alignment = align_center
+
+# 區塊三：原料肉資料
+ws.merge_cells('A6:L6')
+ws['A6'] = "原料肉資料"
+style_range(ws, 'A6:L6', font=font_section, alignment=align_center, fill=fill_gray, border=border_all)
+ws.row_dimensions[6].height = 22
+
+headers_meat = ['屠宰日期', '屠宰單位', '原料肉名稱', '原料肉分切日期', '動物用藥檢驗', '微生物檢驗']
+values_meat = [slaughter_date, slaughter_unit, meat_type, cut_date, drugs_check, bio_check]
+col_pairs = [('A7:B7','A8:B8'), ('C7:D7','C8:D8'), ('E7:F7','E8:F8'), ('G7:H7','G8:H8'), ('I7:J7','I8:J8'), ('K7:L7','K8:L8')]
+for i, (h_rng, v_rng) in enumerate(col_pairs):
+    ws.merge_cells(h_rng)
+    ws.merge_cells(v_rng)
+    ws[h_rng.split(':')[0]] = headers_meat[i]  
+    ws[v_rng.split(':')[0]] = values_meat[i]  
+    style_range(ws, h_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
+    style_range(ws, v_rng, font=font_body, alignment=align_center, border=border_all)
+ws.row_dimensions[7].height = 24
+ws.row_dimensions[8].height = 24
+
+# 區塊四：產品加工資料
+ws.merge_cells('A9:L9')
+ws['A9'] = "產品加工資料"
+style_range(ws, 'A9:L9', font=font_section, alignment=align_center, fill=fill_gray, border=border_all)
+ws.row_dimensions[9].height = 22
+
+formatted_make_date = format_date_slash(make_date)
+formatted_valid_date = format_date_slash(valid_date)
+labels_v4 = [
+    ('A10:B10', '產品規格', 'C10:D10', ""), ('E10:F10', '製造日期', 'G10:H10', formatted_make_date), ('I10:J10', '有效日期', 'K10:L10', formatted_valid_date),
+    ('A11:B11', '產品批號', 'C11:D11', ""), ('E11:F11', '生產數量', 'G11:H11', ""), ('I11:J11', '備註說明', 'K11:L11', "")
+]
+for lbl_rng, lbl_txt, val_rng, val_txt in labels_v4:
+    ws.merge_cells(lbl_rng)
+    ws.merge_cells(val_rng)
+    ws[lbl_rng.split(':')[0]] = lbl_txt  
+    ws[val_rng.split(':')[0]] = val_txt  
+    style_range(ws, lbl_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
+    style_range(ws, val_rng, font=font_body, alignment=align_center, border=border_all)
+ws.row_dimensions[10].height = 24
+ws.row_dimensions[11].height = 24
+
+# 區塊五：相關進貨單據
+ws.merge_cells('A12:L12')
+ws['A12'] = "相關進貨單據 / 銷貨單收據證明"
+style_range(ws, 'A12:L12', font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
+ws.row_dimensions[12].height = 20
+
+ws.merge_cells('A13:L13')
+style_range(ws, 'A13:L13', border=border_all)
+ws.row_dimensions[13].height = 355.90  
+
+if uploaded_receipt_file is not None:
+    pil_receipt = PILImage.open(uploaded_receipt_file)
+    pil_receipt.thumbnail((750, 450))
+    
+    img_byte_arr2 = io.BytesIO()
+    pil_receipt.save(img_byte_arr2, format='PNG')
+    img_byte_arr2.seek(0)
+    
+    receipt_obj = OpenpyxlImage(img_byte_arr2)
+    receipt_obj.anchor = 'A13'
+    ws.add_image(receipt_obj)
+else:
+    ws['A13'] = "（現場未上傳單據照片）"
+    ws['A13'].font = font_body
+    ws['A13'].alignment = align_center
+
+# 匯出與檔案名稱產生
+excel_data = io.BytesIO()
+wb.save(excel_data)
+excel_data.seek(0)
+raw_bytes = excel_data.getvalue()
+
+download_filename = f"{supplier}_{selected_sku_code}_{product_name}.xlsx"
+
+# 畫面底端：下載與寄信雙功能按鈕
+st.write("---")
+st.markdown("### 💾 報表匯出與存檔")
+col_btn1, col_btn2 = st.columns(2)
+
+with col_btn1:
+    st.download_button(
+        label="📥 下載 Excel 報表 (儲存至本機)",
+        data=raw_bytes,
+        file_name=download_filename,
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        use_container_width=True
+    )
+
+with col_btn2:
+    if st.button("✉️ 寄送至電子信箱", use_container_width=True):
+        email_dialog(raw_bytes, download_filename)
+
+
+# =================【4. 🌟 搬移至此：後端 Excel 多圖嵌入與一鍵下載邏輯】=================
+st.write("---")
+
+wb = Workbook()
+ws = wb.active
+ws.title = "加工肉品追蹤追溯表"
+
+# 修改為 A4 直向列印設定
+ws.page_setup.orientation = ws.ORIENTATION_PORTRAIT   
+ws.page_setup.paperSize = ws.PAPERSIZE_A4             
+ws.sheet_properties.pageSetUpPr.fitToPage = True      
+ws.page_setup.fitToWidth = 1                          
+ws.page_setup.fitToHeight = 0                         
+
+font_title = Font(name="微軟正黑體", size=16, bold=True)
+font_section = Font(name="微軟正黑體", size=11, bold=True)
+font_grid_header = Font(name="微軟正黑體", size=10, bold=True)
+font_body = Font(name="微軟正黑體", size=10)
+align_center = Alignment(horizontal="center", vertical="center", wrap_text=True)
+fill_gray = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
+thin_border = Side(style='thin', color='000000')
+border_all = Border(left=thin_border, right=thin_border, top=thin_border, bottom=thin_border)
+
+# 統一設定欄寬：直向 A4 為了塞入 12 欄，將欄寬調整為 9.5 較為緊湊剛好
+for col in ['A','B','C','D','E','F','G','H','I','J','K','L']:
+    ws.column_dimensions[col].width = 9.5
+
+# 寫入大標題
+ws.merge_cells('A1:L1')
+ws['A1'] = "瓦城泰統集團\n加工肉品追蹤追溯表"
+ws['A1'].font = font_title
+ws['A1'].alignment = align_center
+ws.row_dimensions[1].height = 45
+
+# 區塊一：基本料號資訊
+formatted_in_date = format_date_slash(in_date)
+labels_v1 = [
+    ('A2:B2', '料號', 'C2:D2', selected_sku_code), ('E2:F2', '供應商', 'G2:L2', supplier),
+    ('A3:B3', '品名', 'C3:D3', product_name), ('E3:F3', '進貨日', 'G3:L3', formatted_in_date)
+]
+for lbl_rng, lbl_txt, val_rng, val_txt in labels_v1:
+    ws.merge_cells(lbl_rng)
+    ws.merge_cells(val_rng)
+    ws[lbl_rng.split(':')[0]] = lbl_txt  
+    ws[val_rng.split(':')[0]] = val_txt  
+    style_range(ws, lbl_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
+    style_range(ws, val_rng, font=font_body, alignment=align_center, border=border_all)
+ws.row_dimensions[2].height = 24
+ws.row_dimensions[3].height = 24
+
+# 區塊二：產品包裝與 QR 查驗圖示
+ws.merge_cells('A4:L4')
+ws['A4'] = "產品包裝圖示 (包含特定品項之 QR Code 履歷查驗與進階截圖證明)"
+style_range(ws, 'A4:L4', font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
+ws.row_dimensions[4].height = 20
+
+# 合併 A5:L5
+ws.merge_cells('A5:L5')
+style_range(ws, 'A5:L5', border=border_all)
+ws.row_dimensions[5].height = 247.50  
+
+# 整合所有要並排的照片
+all_images_to_pack = []
+if uploaded_image_files:
+    for f in uploaded_image_files[:3]: 
+        all_images_to_pack.append(f)
+if uploaded_qr_screenshot_1 is not None:
+    all_images_to_pack.append(uploaded_qr_screenshot_1)
+if uploaded_qr_screenshot_2 is not None:
+    all_images_to_pack.append(uploaded_qr_screenshot_2)
+
+target_columns = ['A5', 'C5', 'E5', 'G5', 'I5', 'K5']
+
+if all_images_to_pack:
+    for idx, img_file in enumerate(all_images_to_pack[:6]):
+        if idx < len(target_columns):
+            pil_img = PILImage.open(img_file)
+            pil_img.thumbnail((150, 310))
+            
+            img_stream = io.BytesIO()
+            pil_img.save(img_stream, format='PNG')
+            img_stream.seek(0)
+            
+            img_obj = OpenpyxlImage(img_stream)
+            img_obj.anchor = target_columns[idx]  
+            ws.add_image(img_obj)
+else:
+    ws['A5'] = "（現場未上傳包裝或查驗照片）"
+    ws['A5'].font = font_body
+    ws['A5'].alignment = align_center
+
+# 區塊三：原料肉資料
+ws.merge_cells('A6:L6')
+ws['A6'] = "原料肉資料"
+style_range(ws, 'A6:L6', font=font_section, alignment=align_center, fill=fill_gray, border=border_all)
+ws.row_dimensions[6].height = 22
+
+headers_meat = ['屠宰日期', '屠宰單位', '原料肉名稱', '原料肉分切日期', '動物用藥檢驗', '微生物檢驗']
+values_meat = [slaughter_date, slaughter_unit, meat_type, cut_date, drugs_check, bio_check]
+col_pairs = [('A7:B7','A8:B8'), ('C7:D7','C8:D8'), ('E7:F7','E8:F8'), ('G7:H7','G8:H8'), ('I7:J7','I8:J8'), ('K7:L7','K8:L8')]
+for i, (h_rng, v_rng) in enumerate(col_pairs):
+    ws.merge_cells(h_rng)
+    ws.merge_cells(v_rng)
+    ws[h_rng.split(':')[0]] = headers_meat[i]  
+    ws[v_rng.split(':')[0]] = values_meat[i]  
+    style_range(ws, h_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
+    style_range(ws, v_rng, font=font_body, alignment=align_center, border=border_all)
+ws.row_dimensions[7].height = 24
+ws.row_dimensions[8].height = 24
+
+# 區塊四：產品加工資料
+ws.merge_cells('A9:L9')
+ws['A9'] = "產品加工資料"
+style_range(ws, 'A9:L9', font=font_section, alignment=align_center, fill=fill_gray, border=border_all)
+ws.row_dimensions[9].height = 22
+
+formatted_make_date = format_date_slash(make_date)
+formatted_valid_date = format_date_slash(valid_date)
+labels_v4 = [
+    ('A10:B10', '產品規格', 'C10:D10', ""), ('E10:F10', '製造日期', 'G10:H10', formatted_make_date), ('I10:J10', '有效日期', 'K10:L10', formatted_valid_date),
+    ('A11:B11', '產品批號', 'C11:D11', ""), ('E11:F11', '生產數量', 'G11:H11', ""), ('I11:J11', '備註說明', 'K11:L11', "")
+]
+for lbl_rng, lbl_txt, val_rng, val_txt in labels_v4:
+    ws.merge_cells(lbl_rng)
+    ws.merge_cells(val_rng)
+    ws[lbl_rng.split(':')[0]] = lbl_txt  
+    ws[val_rng.split(':')[0]] = val_txt  
+    style_range(ws, lbl_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
+    style_range(ws, val_rng, font=font_body, alignment=align_center, border=border_all)
+ws.row_dimensions[10].height = 24
+ws.row_dimensions[11].height = 24
+
+# 區塊五：相關進貨單據
+ws.merge_cells('A12:L12')
+ws['A12'] = "相關進貨單據 / 銷貨單收據證明"
+style_range(ws, 'A12:L12', font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
+ws.row_dimensions[12].height = 20
+
+ws.merge_cells('A13:L13')
+style_range(ws, 'A13:L13', border=border_all)
+ws.row_dimensions[13].height = 355.90  
+
+if uploaded_receipt_file is not None:
+    pil_receipt = PILImage.open(uploaded_receipt_file)
+    pil_receipt.thumbnail((750, 450))
+    
+    img_byte_arr2 = io.BytesIO()
+    pil_receipt.save(img_byte_arr2, format='PNG')
+    img_byte_arr2.seek(0)
+    
+    receipt_obj = OpenpyxlImage(img_byte_arr2)
+    receipt_obj.anchor = 'A13'
+    ws.add_image(receipt_obj)
+else:
+    ws['A13'] = "（現場未上傳單據照片）"
+    ws['A13'].font = font_body
+    ws['A13'].alignment = align_center
+
+# 匯出與檔案名稱產生
+excel_data = io.BytesIO()
+wb.save(excel_data)
+excel_data.seek(0)
+raw_bytes = excel_data.getvalue()
+
+download_filename = f"{supplier}_{selected_sku_code}_{product_name}.xlsx"
+
+# 畫面底端：下載與寄信雙功能按鈕
+st.write("---")
+st.markdown("### 💾 報表匯出與存檔")
+col_btn1, col_btn2 = st.columns(2)
+
+with col_btn1:
+    st.download_button(
+        label="📥 下載 Excel 報表 (儲存至本機)",
+        data=raw_bytes,
+        file_name=download_filename,
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        use_container_width=True
+    )
+
+with col_btn2:
+    if st.button("✉️ 寄送至電子信箱", use_container_width=True):
+        email_dialog(raw_bytes, download_filename)
+
 
 # =================【3. 後端 Excel 多圖嵌入與一鍵下載邏輯】=================
 st.write("---")
