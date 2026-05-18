@@ -21,7 +21,7 @@ def send_email(to_email, subject, body, attachment=None):
     msg["From"] = from_email
     msg["To"] = to_email
 
-    # 信件內容
+    # 信件內容用 UTF-8
     msg.attach(MIMEText(body, "plain", "utf-8"))
 
     # 如果要附上 Excel 報表
@@ -29,14 +29,14 @@ def send_email(to_email, subject, body, attachment=None):
         part = MIMEBase("application", "octet-stream")
         part.set_payload(attachment.getvalue())
         encoders.encode_base64(part)
-        part.add_header("Content-Disposition", "attachment; filename=report.xlsx")
+        # 🔹這裡改成 UTF-8 檔名，避免 ascii 錯誤
+        part.add_header("Content-Disposition", "attachment; filename*=utf-8''肉品追溯表.xlsx")
         msg.attach(part)
 
     # 寄送
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
         server.login(from_email, password)
         server.sendmail(from_email, [to_email], msg.as_string())
-
 
 st.set_page_config(page_title="肉品追溯系統", layout="centered")
 st.title("🐖 豬肉追溯系統")
