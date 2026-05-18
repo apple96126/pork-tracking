@@ -205,8 +205,8 @@ labels_v1 = [
 for lbl_rng, lbl_txt, val_rng, val_txt in labels_v1:
     ws.merge_cells(lbl_rng)
     ws.merge_cells(val_rng)
-    ws[lbl_rng.split(':')[0]] = lbl_txt  # 🌟 修正：補回 [0]
-    ws[val_rng.split(':')[0]] = val_txt  # 🌟 修正：補回 [0]
+    ws[lbl_rng.split(':')[0]] = lbl_txt  # 🌟 注意看：是中括號內放 0
+    ws[val_rng.split(':')[0]] = val_txt  # 🌟 注意看：是中括號內放 0
     style_range(ws, lbl_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     style_range(ws, val_rng, font=font_body, alignment=align_center, border=border_all)
 ws.row_dimensions.height = 24
@@ -262,8 +262,8 @@ col_pairs = [('A7:B7','A8:B8'), ('C7:D7','C8:D8'), ('E7:F7','E8:F8'), ('G7:H7','
 for i, (h_rng, v_rng) in enumerate(col_pairs):
     ws.merge_cells(h_rng)
     ws.merge_cells(v_rng)
-    ws[h_rng.split(':')[0]] = headers_meat[i]  # 🌟 修正：補回 [0]
-    ws[v_rng.split(':')[0]] = values_meat[i]  # 🌟 修正：補回 [0]
+    ws[h_rng.split(':')[0]] = headers_meat[i]  # 🌟 注意看：是中括號內放 0
+    ws[v_rng.split(':')[0]] = values_meat[i]  # 🌟 注意看：是中括號內放 0
     style_range(ws, h_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     style_range(ws, v_rng, font=font_body, alignment=align_center, border=border_all)
 ws.row_dimensions.height = 24
@@ -283,8 +283,8 @@ labels_v4 = [
 for lbl_rng, lbl_txt, val_rng, val_txt in labels_v4:
     ws.merge_cells(lbl_rng)
     ws.merge_cells(val_rng)
-    ws[lbl_rng.split(':')[0]] = lbl_txt  # 🌟 修正：補回 [0]
-    ws[val_rng.split(':')[0]] = val_txt  # 🌟 修正：補回 [0]
+    ws[lbl_rng.split(':')[0]] = lbl_txt  # 🌟 注意看：是中括號內放 0
+    ws[val_rng.split(':')[0]] = val_txt  # 🌟 注意看：是中括號內放 0
     style_range(ws, lbl_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     style_range(ws, val_rng, font=font_body, alignment=align_center, border=border_all)
 ws.row_dimensions.height = 24
