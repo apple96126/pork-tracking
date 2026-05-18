@@ -1,3 +1,96 @@
+# ==================== 【1. 檔案最上方：套件匯入】 ====================
+import io
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email import encoders
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment, PatternFill, Side, Border
+from openpyxl.drawing.image import Image as OpenpyxlImage
+from PIL import Image as PILImage
+import streamlit as st
+
+# ==================== 【2. 宣告發信與彈出視窗功能】 ====================
+# 🌟 必須擺在前面，後面呼叫才不會噴 NameError
+def send_via_gmail(to_email, excel_bytes, filename):
+    smtp_server = "://gmail.com"
+    smtp_port = 587
+    
+    sender_email = st.secrets.get("GMAIL_USER", "您的Gmail帳號@gmail.com")
+    sender_password = st.secrets.get("GMAIL_PASSWORD", "您的16位應用程式密碼")
+
+    msg = MIMEMultipart()
+    msg['From'] = sender_email
+    msg['To'] = to_email
+    msg['Subject'] = f"📊 【肉品追溯表】{filename.replace('.xlsx', '')}"
+    
+    body = f"您好：\n\n系統已自動生成「{filename}」加工肉品追蹤追溯表，請查收附件。\n\n此為系統自動發送郵件，請勿直接回覆。"
+    msg.attach(MIMEText(body, 'plain', 'utf-8'))
+
+    part = MIMEBase('application', 'vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    part.set_payload(excel_bytes)
+    encoders.encode_base64(part)
+    part.add_header('Content-Disposition', f'attachment; filename="{filename}"')
+    msg.attach(part)
+
+    with smtplib.SMTP(smtp_server, smtp_port) as server:
+        server.starttls()
+        server.login(sender_email, sender_password)
+        server.send_message(msg)
+
+@st.dialog("寄送報表至信箱")
+def email_dialog(data_bytes, filename):
+    user_email = st.text_input("請輸入您的電子信箱：", placeholder="example@gmail.com")
+    if st.button("確認寄送", use_container_width=True):
+        if user_email and "@" in user_email:
+            with st.spinner("郵件傳送中，請稍候..."):
+                try:
+                    send_via_gmail(user_email, data_bytes, filename)
+                    st.success("報表已成功寄出！請至您的信箱查收。")
+                except Exception as e:
+                    st.error(f"寄送失敗！錯誤原因: {e}")
+        else:
+            st.warning("請輸入正確且有效的電子信箱地址。")
+
+
+# ==================== 【3. 您的前端表單與輸入元件】 ====================
+# (這裡保留您原本畫面上的 in_date, supplier, product_name 等輸入欄位...)
+
+
+# ==================== 【4. 後端 Excel 多圖嵌入與一鍵下載邏輯】 ====================
+st.write("---")
+
+wb = Workbook()
+ws = wb.active
+ws.title = "加工肉品追蹤追溯表"
+
+# ... (中間這段產製 Excel、合併儲存格、塞照片的邏輯完全不動) ...
+
+# 匯出資料準備與按鈕產出
+excel_data = io.BytesIO()
+wb.save(excel_data)
+excel_data.seek(0)
+raw_bytes = excel_data.getvalue()
+
+download_filename = f"{supplier}_{selected_sku_code}_{product_name}.xlsx"
+
+st.markdown("### 💾 報表匯出與存檔")
+col1, col2 = st.columns(2)
+
+with col1:
+    st.download_button(
+        label="📥 下載 Excel 報表 (儲存至本機)",
+        data=raw_bytes,
+        file_name=download_filename,
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        use_container_width=True
+    )
+
+with col2:
+    if st.button("✉️ 寄送至電子信箱", use_container_width=True):
+        email_dialog(raw_bytes, download_filename)  # 👈 這時候 Python 就能順利找到上面的 email_dialog 了！
+
 import streamlit as st
 import io
 from datetime import date
