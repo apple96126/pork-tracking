@@ -6,6 +6,38 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from openpyxl.drawing.image import Image as OpenpyxlImage
 
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email import encoders
+
+def send_email(to_email, subject, body, attachment=None):
+    from_email = "你的gmail帳號@gmail.com"
+    password = "你的應用程式密碼"  # 建議用 Gmail 應用程式密碼
+
+    msg = MIMEMultipart()
+    msg["Subject"] = subject
+    msg["From"] = from_email
+    msg["To"] = to_email
+
+    # 信件內容
+    msg.attach(MIMEText(body, "plain", "utf-8"))
+
+    # 如果要附上 Excel 報表
+    if attachment:
+        part = MIMEBase("application", "octet-stream")
+        part.set_payload(attachment.getvalue())
+        encoders.encode_base64(part)
+        part.add_header("Content-Disposition", "attachment; filename=report.xlsx")
+        msg.attach(part)
+
+    # 寄送
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+        server.login(from_email, password)
+        server.sendmail(from_email, [to_email], msg.as_string())
+
+
 st.set_page_config(page_title="肉品追溯系統", layout="centered")
 st.title("🐖 豬肉追溯系統")
 
