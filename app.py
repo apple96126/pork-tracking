@@ -713,9 +713,11 @@ with col1:
         data=raw_bytes,
         file_name=download_filename,
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        use_container_width=True
+        use_container_width=True,
+        key="final_excel_download"  # 🌟 新增獨立身分證，解決重複元件 ID 錯誤
     )
 
 with col2:
-    if st.button("✉️ 寄送至電子信箱", use_container_width=True):
+    if st.button("✉️ 寄送至電子信箱", use_container_width=True, key="final_email_send"):  # 🌟 新增獨立身分證
         email_dialog(raw_bytes, download_filename)
+
