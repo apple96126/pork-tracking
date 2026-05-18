@@ -106,12 +106,49 @@ if need_qr_flow:
         st.markdown("**4. 進入下個頁面之進階截圖**")
         uploaded_qr_screenshot_2 = st.file_uploader("請上傳次頁進階資訊截圖：", type=["jpg", "jpeg", "png"], key="qr_snap2")
 
+# 【1. 前端網頁輸入介面】
+st.subheader("請填寫追溯表資料")
+
+supplier_list = list(PORK_HIERARCHY.keys())
+supplier = st.selectbox("1. 請先選取供應商", supplier_list)
+
+available_skus = PORK_HIERARCHY[supplier]
+sku_options = [f"{sku} - {info['品名']}" for sku, info in available_skus.items()]
+selected_sku_string = st.selectbox("2. 請選取產品品項", sku_options)
+
+selected_sku_code = selected_sku_string.split(" -")[0]
+product_name = available_skus[selected_sku_code]["品名"]
+need_qr_flow = available_skus[selected_sku_code].get("需要 QR", False)
+
+col1, col2 = st.columns(2)
+with col1:
+    st.info(f"自動對應料號:{selected_sku_code}")
+with col2:
+    in_date = st.date_input("4. 進貨日", value=date.today())
+
+# 新增信箱輸入 + 驗證
+email_address = st.text_input("5. 請輸入聯絡信箱")
+
+# 簡單驗證：必須包含 @ 與 .
+email_valid = False
+if email_address:
+    if "@" not in email_address or "." not in email_address.split("@")[-1]:
+        st.error("⚠️ 信箱格式不正確，請重新輸入 (必須包含 @ 與網域)")
+    else:
+        st.success("✅ 信箱格式正確")
+        email_valid = True
+else:
+    st.warning("⚠️ 請輸入聯絡信箱後才能下載 Excel 報表")
+
+
 # =================【3. 後端 Excel 多圖嵌入與一鍵下載邏輯】=================
 st.write("---")
 
 wb = Workbook()
 ws = wb.active
-ws.title = "加工肉品追蹤追溯表"
+
+# 🔹工作表名稱改成供應商+料號+品名
+ws.title = f"{supplier}_{selected_sku_code}_{product_name}"
 
 # 修改為 A4 直向列印設定
 ws.page_setup.orientation = ws.ORIENTATION_PORTRAIT   
@@ -273,12 +310,15 @@ excel_data = io.BytesIO()
 wb.save(excel_data)
 excel_data.seek(0)
 
+# 🔹下載檔案名稱改成供應商+料號+品名
 download_filename = f"{supplier}_{selected_sku_code}_{product_name}.xlsx"
 
-st.download_button(
-    label="📥 下載 Excel 報表",
-    data=excel_data,
-    file_name=download_filename,
-    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    use_container_width=True
+# 🔹只有在信箱驗證通過時才顯示下載按鈕
+if email_valid:
+    st.download_button(
+        label="📥下載 Excel 報表",
+        data=excel_data,
+        file_name=download_filename,
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        use_container_width=True
 )
