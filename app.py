@@ -72,6 +72,15 @@ with col1:
 with col2:
     in_date = st.date_input("4. 進貨日", value=date.today())
 
+slaughter_date, slaughter_unit, meat_type, cut_date, drugs_check, bio_check = "", "", "", "", "", ""
+
+st.write("---")
+col3, col4 = st.columns(2)
+with col3:
+    make_date = st.date_input("11. 製造日期", value=date.today())
+with col4:
+    valid_date = st.date_input("12. 有效日期", value=date.today())
+
 # 新增信箱輸入 + 驗證
 email_address = st.text_input("5. 請輸入聯絡信箱")
 
