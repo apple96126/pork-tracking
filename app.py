@@ -321,22 +321,23 @@ wb.save(excel_data)
 excel_data.seek(0)
 raw_bytes = excel_data.getvalue() # 轉換為 bytes 供郵件與下載重複使用
 
+# （請確保這行上方是您的 download_filename 變數）
 download_filename = f"{supplier}_{selected_sku_code}_{product_name}.xlsx"
 
-
-# --- 💡 新增：底端一鍵雙功能按鈕區塊 ---
+# ==================== 🌟 這裡開始替換最末端程式碼 ====================
+# --- 💡 底端一鍵雙功能按鈕區塊 ---
 st.markdown("### 💾 報表匯出與存檔")
 col1, col2 = st.columns(2)
 
 with col1:
-    # 功能一：本機點擊直接下載
+    # 功能一：本機點擊直接下載（確保所有括號完全閉合）
     st.download_button(
         label="📥 下載 Excel 報表 (儲存至本機)",
         data=raw_bytes,
         file_name=download_filename,
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         use_container_width=True
-    )
+    )  # 👈 檢查這裡的右括號是否有對齊並閉合
 
 with col2:
     # 功能二：觸發彈出視窗輸入信箱寄送
