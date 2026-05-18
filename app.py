@@ -52,60 +52,6 @@ PORK_HIERARCHY = {
 }
 
 # =================【1. 前端網頁輸入介面】=================
-st.subheader("📝 請填寫追溯表資料")
-
-supplier_list = list(PORK_HIERARCHY.keys())
-supplier = st.selectbox("1. 請先選取供應商", supplier_list)
-
-available_skus = PORK_HIERARCHY[supplier]
-sku_options = [f"{sku} - {info['品名']}" for sku, info in available_skus.items()]
-selected_sku_string = st.selectbox("2. 請選取產品品項", sku_options)
-
-selected_sku_code = selected_sku_string.split(" - ")[0]
-product_name = available_skus[selected_sku_code]["品名"]
-need_qr_flow = available_skus[selected_sku_code].get("專屬與特定的QR流程", False) or available_skus[selected_sku_code].get("需要QR", False)
-
-col1, col2 = st.columns(2)
-with col1:
-    st.info(f"📦 自動對應料號：{selected_sku_code}")
-with col2:
-    in_date = st.date_input("4. 進貨日", value=date.today())
-
-slaughter_date, slaughter_unit, meat_type, cut_date, drugs_check, bio_check = "", "", "", "", "", ""
-
-st.write("---")
-col3, col4 = st.columns(2)
-with col3:
-    make_date = st.date_input("11. 製造日期", value=date.today())
-with col4:
-    valid_date = st.date_input("12. 有效日期", value=date.today())
-
-# =================【2. 📸 照片上傳區】=================
-st.write("---")
-st.subheader("📸 基礎作業照片")
-
-col_img1, col_img2 = st.columns(2)
-with col_img1:
-    st.markdown("**1. 產品包裝圖示照片 (可上傳多張)**")
-    uploaded_image_files = st.file_uploader("請上傳肉品包裝照片（可多選）：", type=["jpg", "jpeg", "png"], accept_multiple_files=True, key="photo1_multi")
-with col_img2:
-    st.markdown("**2. 進貨單據 / 銷貨單照片**")
-    uploaded_receipt_file = st.file_uploader("請選擇或拍攝單據照片：", type=["jpg", "jpeg", "png"], key="photo2")
-
-uploaded_qr_screenshot_1 = None
-uploaded_qr_screenshot_2 = None
-
-if need_qr_flow:
-    st.write("---")
-    st.warning("🔍 偵測到此特定產品需要進行 QR Code 查驗，請於下方補登相關截圖（匯出後將自動合併置於包裝圖示格子內）：")
-    col_qr1, col_qr2 = st.columns(2)
-    with col_qr1:
-        st.markdown("**3. QR Code 頁面特定部分截圖**")
-        uploaded_qr_screenshot_1 = st.file_uploader("請上傳第一頁特定範圍截圖：", type=["jpg", "jpeg", "png"], key="qr_snap1")
-    with col_qr2:
-        st.markdown("**4. 進入下個頁面之進階截圖**")
-        uploaded_qr_screenshot_2 = st.file_uploader("請上傳次頁進階資訊截圖：", type=["jpg", "jpeg", "png"], key="qr_snap2")
-
 # 【1. 前端網頁輸入介面】
 st.subheader("請填寫追溯表資料")
 
@@ -139,6 +85,33 @@ if email_address:
         email_valid = True
 else:
     st.warning("⚠️ 請輸入聯絡信箱後才能下載 Excel 報表")
+
+# =================【2. 📸 照片上傳區】=================
+st.write("---")
+st.subheader("📸 基礎作業照片")
+
+col_img1, col_img2 = st.columns(2)
+with col_img1:
+    st.markdown("**1. 產品包裝圖示照片 (可上傳多張)**")
+    uploaded_image_files = st.file_uploader("請上傳肉品包裝照片（可多選）：", type=["jpg", "jpeg", "png"], accept_multiple_files=True, key="photo1_multi")
+with col_img2:
+    st.markdown("**2. 進貨單據 / 銷貨單照片**")
+    uploaded_receipt_file = st.file_uploader("請選擇或拍攝單據照片：", type=["jpg", "jpeg", "png"], key="photo2")
+
+uploaded_qr_screenshot_1 = None
+uploaded_qr_screenshot_2 = None
+
+if need_qr_flow:
+    st.write("---")
+    st.warning("🔍 偵測到此特定產品需要進行 QR Code 查驗，請於下方補登相關截圖（匯出後將自動合併置於包裝圖示格子內）：")
+    col_qr1, col_qr2 = st.columns(2)
+    with col_qr1:
+        st.markdown("**3. QR Code 頁面特定部分截圖**")
+        uploaded_qr_screenshot_1 = st.file_uploader("請上傳第一頁特定範圍截圖：", type=["jpg", "jpeg", "png"], key="qr_snap1")
+    with col_qr2:
+        st.markdown("**4. 進入下個頁面之進階截圖**")
+        uploaded_qr_screenshot_2 = st.file_uploader("請上傳次頁進階資訊截圖：", type=["jpg", "jpeg", "png"], key="qr_snap2")
+
 
 
 # =================【3. 後端 Excel 多圖嵌入與一鍵下載邏輯】=================
