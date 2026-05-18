@@ -64,7 +64,7 @@ selected_sku_string = st.selectbox("2. 請選取產品品項", sku_options)
 
 selected_sku_code = selected_sku_string.split(" -")[0]
 product_name = available_skus[selected_sku_code]["品名"]
-need_qr_flow = available_skus[selected_sku_code].get("需要 QR", False)
+need_qr_flow = available_skus[selected_sku_code].get("專屬與特定的QR流程", False) or available_skus[selected_sku_code].get("需要QR", False)
 
 col1, col2 = st.columns(2)
 with col1:
