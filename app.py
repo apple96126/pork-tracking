@@ -107,62 +107,6 @@ if need_qr_flow:
         uploaded_qr_screenshot_2 = st.file_uploader("請上傳次頁進階資訊截圖：", type=["jpg", "jpeg", "png"], key="qr_snap2")
 
 # =================【3. 後端 Excel 多圖嵌入與一鍵下載邏輯】=================
-import io
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.base import MIMEBase
-from email import encoders
-from openpyxl import Workbook
-from openpyxl.styles import Font, Alignment, PatternFill, Side, Border
-from openpyxl.drawing.image import Image as OpenpyxlImage
-from PIL import Image as PILImage
-import streamlit as st
-
-# --- 💡 新增：Gmail 寄送函式 ---
-def send_via_gmail(to_email, excel_bytes, filename):
-    smtp_server = "://gmail.com"
-    smtp_port = 587
-    
-    # 建議改用 st.secrets 讀取，若要測試可先填字串
-    sender_email = st.secrets.get("GMAIL_USER", "您的Gmail帳號@gmail.com")
-    sender_password = st.secrets.get("GMAIL_PASSWORD", "您的16位應用程式密碼")
-
-    msg = MIMEMultipart()
-    msg['From'] = sender_email
-    msg['To'] = to_email
-    msg['Subject'] = f"📊 【肉品追溯表】{filename.replace('.xlsx', '')}"
-    
-    body = f"您好：\n\n系統已自動生成「{filename}」加工肉品追蹤追溯表，請查收附件。\n\n此為系統自動發送郵件，請勿直接回覆。"
-    msg.attach(MIMEText(body, 'plain', 'utf-8'))
-
-    part = MIMEBase('application', 'vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    part.set_payload(excel_bytes)
-    encoders.encode_base64(part)
-    part.add_header('Content-Disposition', f'attachment; filename="{filename}"')
-    msg.attach(part)
-
-    with smtplib.SMTP(smtp_server, smtp_port) as server:
-        server.starttls()
-        server.login(sender_email, sender_password)
-        server.send_message(msg)
-
-# --- 💡 新增：Streamlit 彈出輸入視窗 ---
-@st.dialog("寄送報表至信箱")
-def email_dialog(data_bytes, filename):
-    user_email = st.text_input("請輸入您的電子信箱：", placeholder="example@gmail.com")
-    if st.button("確認寄送", use_container_width=True):
-        if user_email and "@" in user_email: # 簡易檢查信箱格式
-            with st.spinner("郵件傳送中，請稍候..."):
-                try:
-                    send_via_gmail(user_email, data_bytes, filename)
-                    st.success("報表已成功寄出！請至您的信箱查收。")
-                except Exception as e:
-                    st.error(f"寄送失敗！請確認密碼設定。錯誤原因: {e}")
-        else:
-            st.warning("請輸入正確且有效的電子信箱地址。")
-
-# --- 以下為您原本的 Excel 產製邏輯 ---
 st.write("---")
 
 wb = Workbook()
@@ -199,14 +143,16 @@ ws.row_dimensions.height = 45
 # 區塊一：基本料號資訊
 formatted_in_date = format_date_slash(in_date)
 labels_v1 = [
-    ('A2:B2', '料號', 'C2:D2', selected_sku_code), ('E2:F2', '供應商', 'G2:L2', supplier),
-    ('A3:B3', '品名', 'C3:D3', product_name), ('E3:F3', '進貨日', 'G3:L3', formatted_in_date)
+    ('A2:B2', '料號', 'C2:D2', selected_sku_code), 
+    ('E2:F2', '供應商', 'G2:L2', supplier),
+    ('A3:B3', '品名', 'C3:D3', product_name), 
+    ('E3:F3', '進貨日', 'G3:L3', formatted_in_date)
 ]
 for lbl_rng, lbl_txt, val_rng, val_txt in labels_v1:
     ws.merge_cells(lbl_rng)
     ws.merge_cells(val_rng)
-    ws[lbl_rng.split(':')[0]] = lbl_txt  # 🌟 注意看：是中括號內放 0
-    ws[val_rng.split(':')[0]] = val_txt  # 🌟 注意看：是中括號內放 0
+    ws[lbl_rng.split(':')[0]] = lbl_txt  
+    ws[val_rng.split(':')[0]] = val_txt  
     style_range(ws, lbl_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     style_range(ws, val_rng, font=font_body, alignment=align_center, border=border_all)
 ws.row_dimensions.height = 24
@@ -262,8 +208,8 @@ col_pairs = [('A7:B7','A8:B8'), ('C7:D7','C8:D8'), ('E7:F7','E8:F8'), ('G7:H7','
 for i, (h_rng, v_rng) in enumerate(col_pairs):
     ws.merge_cells(h_rng)
     ws.merge_cells(v_rng)
-    ws[h_rng.split(':')[0]] = headers_meat[i]  # 🌟 注意看：是中括號內放 0
-    ws[v_rng.split(':')[0]] = values_meat[i]  # 🌟 注意看：是中括號內放 0
+    ws[h_rng.split(':')[0]] = headers_meat[i]  
+    ws[v_rng.split(':')[0]] = values_meat[i]  
     style_range(ws, h_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     style_range(ws, v_rng, font=font_body, alignment=align_center, border=border_all)
 ws.row_dimensions.height = 24
@@ -277,14 +223,18 @@ ws.row_dimensions.height = 22
 formatted_make_date = format_date_slash(make_date)
 formatted_valid_date = format_date_slash(valid_date)
 labels_v4 = [
-    ('A10:B10', '產品規格', 'C10:D10', ""), ('E10:F10', '製造日期', 'G10:H10', formatted_make_date), ('I10:J10', '有效日期', 'K10:L10', formatted_valid_date),
-    ('A11:B11', '產品批號', 'C11:D11', ""), ('E11:F11', '生產數量', 'G11:H11', ""), ('I11:J11', '備註說明', 'K11:L11', "")
+    ('A10:B10', '產品規格', 'C10:D10', ""), 
+    ('E10:F10', '製造日期', 'G10:H10', formatted_make_date), 
+    ('I10:J10', '有效日期', 'K10:L10', formatted_valid_date),
+    ('A11:B11', '產品批號', 'C11:D11', ""), 
+    ('E11:F11', '生產數量', 'G11:H11', ""), 
+    ('I11:J11', '備註說明', 'K11:L11', "")
 ]
 for lbl_rng, lbl_txt, val_rng, val_txt in labels_v4:
     ws.merge_cells(lbl_rng)
     ws.merge_cells(val_rng)
-    ws[lbl_rng.split(':')[0]] = lbl_txt  # 🌟 注意看：是中括號內放 0
-    ws[val_rng.split(':')[0]] = val_txt  # 🌟 注意看：是中括號內放 0
+    ws[lbl_rng.split(':')[0]] = lbl_txt  
+    ws[val_rng.split(':')[0]] = val_txt  
     style_range(ws, lbl_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     style_range(ws, val_rng, font=font_body, alignment=align_center, border=border_all)
 ws.row_dimensions.height = 24
@@ -315,32 +265,27 @@ else:
     ws['A13'].font = font_body
     ws['A13'].alignment = align_center
 
-# 匯出資料準備
+# 匯出資料準備與按鈕產出
 excel_data = io.BytesIO()
 wb.save(excel_data)
 excel_data.seek(0)
-raw_bytes = excel_data.getvalue() # 轉換為 bytes 供郵件與下載重複使用
+raw_bytes = excel_data.getvalue()
 
-# （請確保這行上方是您的 download_filename 變數）
 download_filename = f"{supplier}_{selected_sku_code}_{product_name}.xlsx"
 
-# ==================== 🌟 這裡開始替換最末端程式碼 ====================
-# --- 💡 底端一鍵雙功能按鈕區塊 ---
 st.markdown("### 💾 報表匯出與存檔")
 col1, col2 = st.columns(2)
 
 with col1:
-    # 功能一：本機點擊直接下載（確保所有括號完全閉合）
     st.download_button(
         label="📥 下載 Excel 報表 (儲存至本機)",
         data=raw_bytes,
         file_name=download_filename,
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         use_container_width=True
-    )  # 👈 檢查這裡的右括號是否有對齊並閉合
+    )
 
 with col2:
-    # 功能二：觸發彈出視窗輸入信箱寄送
     if st.button("✉️ 寄送至電子信箱", use_container_width=True):
         email_dialog(raw_bytes, download_filename)
 
