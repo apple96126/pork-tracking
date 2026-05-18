@@ -126,21 +126,6 @@ if email_address:
 else:
     st.warning("⚠️ 請輸入聯絡信箱後才能下載 Excel 報表")
 
-# 🔹寄送 Email 按鈕（新增）
-if email_valid and st.button("寄送 Email"):
-    body_text = f"""您好，這是您填寫的追溯表通知。
-供應商: {supplier}
-品名: {product_name}
-進貨日: {in_date}
-"""
-    send_email(
-        to_email=email_address,
-        subject="肉品追溯表通知",
-        body=body_text,
-        attachment=excel_data  # 附上 Excel 報表
-    )
-    st.success("✅ 已寄送到您的信箱")
-
 # =================【2. 📸 照片上傳區】=================
 st.write("---")
 st.subheader("📸 基礎作業照片")
