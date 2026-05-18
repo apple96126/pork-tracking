@@ -288,6 +288,3 @@ with col1:
 with col2:
     if st.button("✉️ 寄送至電子信箱", use_container_width=True):
         email_dialog(raw_bytes, download_filename)
-
-)
-
