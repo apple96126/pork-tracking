@@ -350,3 +350,23 @@ if email_valid:
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         use_container_width=True
 )
+
+ # 🔹寄送 Email 按鈕
+    if st.button("寄送 Email"):
+        body_text = f"""您好，這是您填寫的追溯表通知。
+供應商: {supplier}
+品名: {product_name}
+進貨日: {in_date}
+"""
+        try:
+            send_email(
+                to_email=email_address,
+                subject="肉品追溯表通知",
+                body=body_text,
+                attachment=excel_data  # 附上 Excel 報表
+            )
+            st.success("✅ 已寄送到您的信箱")
+        except Exception as e:
+            st.error(f"❌ 寄信失敗，錯誤訊息: {e}")
+else:
+    st.error("⚠️ 請確認信箱格式正確，才能下載或寄送 Excel 報表")
