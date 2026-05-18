@@ -12,9 +12,11 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email import encoders
 
+from email.utils import encode_rfc2231
+
 def send_email(to_email, subject, body, attachment=None):
     from_email = "你的gmail帳號@gmail.com"
-    password = "你的應用程式密碼"  # 建議用 Gmail 應用程式密碼
+    password = "你的應用程式密碼"
 
     msg = MIMEMultipart()
     msg["Subject"] = subject
@@ -29,11 +31,16 @@ def send_email(to_email, subject, body, attachment=None):
         part = MIMEBase("application", "octet-stream")
         part.set_payload(attachment.getvalue())
         encoders.encode_base64(part)
-        # 🔹這裡改成 UTF-8 檔名，避免 ascii 錯誤
-        part.add_header("Content-Disposition", "attachment; filename*=utf-8''肉品追溯表.xlsx")
+
+        # 🔹用 RFC2231 編碼檔名，避免 ASCII 錯誤
+        filename = "肉品追溯表.xlsx"
+        part.add_header(
+            "Content-Disposition",
+            "attachment",
+            filename=encode_rfc2231(filename, "utf-8")
+        )
         msg.attach(part)
 
-    # 寄送
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
         server.login(from_email, password)
         server.sendmail(from_email, [to_email], msg.as_string())
