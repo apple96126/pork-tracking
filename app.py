@@ -116,7 +116,6 @@ with col4:
 # 新增信箱輸入 + 驗證
 email_address = st.text_input("5. 請輸入聯絡信箱")
 
-# 簡單驗證：必須包含 @ 與 .
 email_valid = False
 if email_address:
     if "@" not in email_address or "." not in email_address.split("@")[-1]:
@@ -126,6 +125,21 @@ if email_address:
         email_valid = True
 else:
     st.warning("⚠️ 請輸入聯絡信箱後才能下載 Excel 報表")
+
+# 🔹寄送 Email 按鈕（新增）
+if email_valid and st.button("寄送 Email"):
+    body_text = f"""您好，這是您填寫的追溯表通知。
+供應商: {supplier}
+品名: {product_name}
+進貨日: {in_date}
+"""
+    send_email(
+        to_email=email_address,
+        subject="肉品追溯表通知",
+        body=body_text,
+        attachment=excel_data  # 附上 Excel 報表
+    )
+    st.success("✅ 已寄送到您的信箱")
 
 # =================【2. 📸 照片上傳區】=================
 st.write("---")
