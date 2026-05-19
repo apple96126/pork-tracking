@@ -135,11 +135,11 @@ else:
 
 # =================【2. 📸 照片上傳區】=================
 st.write("---")
-st.subheader("📸 基礎作業照片")
+st.subheader("📸 進貨照片")
 
 col_img1, col_img2 = st.columns(2)
 with col_img1:
-    st.markdown("**1. 產品包裝圖示照片 (可上傳多張)**")
+    st.markdown("**1. 產品包裝照片 (可上傳多張)**")
     uploaded_image_files = st.file_uploader("請上傳肉品包裝照片（可多選）：", type=["jpg", "jpeg", "png"], accept_multiple_files=True, key="photo1_multi")
 with col_img2:
     st.markdown("**2. 進貨單據 / 銷貨單照片**")
@@ -150,16 +150,14 @@ uploaded_qr_screenshot_2 = None
 
 if need_qr_flow:
     st.write("---")
-    st.warning("🔍 偵測到此特定產品需要進行 QR Code 查驗，請於下方補登相關截圖（匯出後將自動合併置於包裝圖示格子內）：")
+    st.warning("🔍 偵測到此特定產品需要進行 QR Code 查驗，請於下方補登相關截圖：")
     col_qr1, col_qr2 = st.columns(2)
     with col_qr1:
-        st.markdown("**3. QR Code 頁面特定部分截圖**")
+        st.markdown("**3. QR Code 屠宰日期**")
         uploaded_qr_screenshot_1 = st.file_uploader("請上傳第一頁特定範圍截圖：", type=["jpg", "jpeg", "png"], key="qr_snap1")
     with col_qr2:
-        st.markdown("**4. 進入下個頁面之進階截圖**")
+        st.markdown("**4. 國產生鮮禽肉溯源平台**")
         uploaded_qr_screenshot_2 = st.file_uploader("請上傳次頁進階資訊截圖：", type=["jpg", "jpeg", "png"], key="qr_snap2")
-
-
 
 # =================【3. 後端 Excel 多圖嵌入與一鍵下載邏輯】=================
 st.write("---")
@@ -177,10 +175,10 @@ ws.sheet_properties.pageSetUpPr.fitToPage = True
 ws.page_setup.fitToWidth = 1                          
 ws.page_setup.fitToHeight = 0                         
 
-font_title = Font(name="微軟正黑體", size=16, bold=True)
-font_section = Font(name="微軟正黑體", size=11, bold=True)
-font_grid_header = Font(name="微軟正黑體", size=10, bold=True)
-font_body = Font(name="微軟正黑體", size=10)
+font_title = Font(name="標楷體", size=20, bold=True)
+font_section = Font(name="標楷體", size=11, bold=True)
+font_grid_header = Font(name="標楷體", size=10, bold=True)
+font_body = Font(name="標楷體", size=10)
 align_center = Alignment(horizontal="center", vertical="center", wrap_text=True)
 fill_gray = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
 thin_border = Side(style='thin', color='000000')
@@ -215,7 +213,7 @@ ws.row_dimensions.height = 24
 
 # 區塊二：產品包裝與 QR 查驗圖示 (🌟 指定列高 247.50)
 ws.merge_cells('A4:L4')
-ws['A4'] = "產品包裝圖示 (包含特定品項之 QR Code 履歷查驗與進階截圖證明)"
+ws['A4'] = "產品包裝圖示"
 style_range(ws, 'A4:L4', font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
 ws.row_dimensions.height = 20
 
@@ -301,7 +299,7 @@ ws.row_dimensions.height = 24
 
 # 區塊五：相關進貨單據 (🌟 指定列高 355.90)
 ws.merge_cells('A12:L12')
-ws['A12'] = "相關進貨單據 / 銷貨單收據證明"
+ws['A12'] = "進貨單據"
 style_range(ws, 'A12:L12', font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
 ws.row_dimensions.height = 20
 
