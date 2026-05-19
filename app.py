@@ -271,74 +271,109 @@ else:
 
 
 # =========================================================================
-# 區塊三：原料肉資料 (🌟 核心改造：動態將 QR 截圖融合嵌入至此欄位)
+# 區塊三：原料肉資料 (🌟 依據需求精準修正有 QR 的合併格，無 QR 維持原樣)
 # =========================================================================
 ws.merge_cells('A6:L6')
 ws['A6'] = "原料肉資料"
 style_range(ws, 'A6:L6', font=font_section, alignment=align_center, fill=fill_gray, border=border_all)
-ws.row_dimensions[6].height = 22
+ws.row_dimensions.height = 22
 
-headers_meat = ['屠宰日期', '屠宰單位', '原料肉名稱', '原料肉分切日期', '動物用藥檢驗', '微生物檢驗']
-
-# 自動連動數據：屠宰單位直接帶入選擇的供應商名稱
+# 自動連動數據
 current_slaughter_unit = supplier if supplier else slaughter_unit
-# 屠宰日期：如果有填就用填的，沒有就預設帶進貨日(可依您網頁邏輯微調)
-current_slaughter_date = format_date_slash(in_date) 
+current_slaughter_date = format_date_slash(in_date)
 
-values_meat = [current_slaughter_date, current_slaughter_unit, meat_type, cut_date, drugs_check, bio_check]
-col_pairs = [('A7:B7','A8:B8'), ('C7:D7','C8:D8'), ('E7:F7','E8:F8'), ('G7:H7','G8:H8'), ('I7:J7','I8:J8'), ('K7:L7','K8:L8')]
-
-# 寫入原料肉文字表頭與內容
-for i, (h_rng, v_rng) in enumerate(col_pairs):
-    ws.merge_cells(h_rng)
-    ws.merge_cells(v_rng)
-    ws[h_rng.split(':')[0]] = headers_meat[i] 
-    ws[v_rng.split(':')[0]] = values_meat[i] 
-    style_range(ws, h_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
-    
-    # 🌟 為了讓圖片有空間放，如果是 QR 流程，文字靠上方對齊，否則維持居中
-    if need_qr_flow:
-        style_range(ws, v_rng, font=font_body, alignment=Alignment(horizontal="center", vertical="top", wrap_text=True), border=border_all)
-    else:
-        style_range(ws, v_rng, font=font_body, alignment=align_center, border=border_all)
-
-# 🌟【動態列高分流】：控制第 8 欄的內容高度
 if need_qr_flow:
-    ws.row_dimensions[7].height = 24
-    ws.row_dimensions[8].height = 280.00  # 大幅拉高第 8 行，完美塞下下方並排的查驗大圖
+    # -----------------------------------------------------------------
+    # 【情境 A：有 QR 流程的精準修正版】
+    # -----------------------------------------------------------------
+    # 第 7 列（表頭列）：
+    # A7:B7 屠宰日期、C7:D7 屠宰單位、K7:L7 微生物檢驗 (保持原樣或調整)
+    ws.merge_cells('A7:B7')
+    ws['A7'] = '屠宰日期'
+    ws.merge_cells('C7:D7')
+    ws['C7'] = '屠宰單位'
+    ws.merge_cells('K7:L7')
+    ws['K7'] = '微生物檢驗'
     
-    # 嵌入【3. QR Code 屠宰日期照片】到「屠宰日期欄位 (A8)」
+    # 🌟 修正點 1 & 2：第七列 E~H 合併且空白、I~J 合併且空白
+    ws.merge_cells('E7:H7')
+    ws['E7'] = ""  # 保持空白
+    ws.merge_cells('I7:J7')
+    ws['I7'] = ""  # 保持空白
+    
+    # 統一套用第七列有 QR 時的表頭樣式
+    for rng in ['A7:B7', 'C7:D7', 'E7:H7', 'I7:J7', 'K7:L7']:
+        style_range(ws, rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
+    ws.row_dimensions.height = 24
+
+    # 第 8 列（內容與圖片列）：
+    ws.row_dimensions.height = 280.00  # 拉高列高塞大圖
+    
+    ws.merge_cells('A8:B8')
+    ws['A8'] = current_slaughter_date
+    ws.merge_cells('C8:D8')
+    ws['C8'] = current_slaughter_unit
+    ws.merge_cells('K8:L8')
+    ws['K8'] = bio_check
+    
+    # 🌟 修正點 3 & 4：第八列 E~H 合併、I~J 合併
+    ws.merge_cells('E8:H8')
+    ws['E8'] = ""  # 保持空白，作為大圖延伸緩衝區
+    ws.merge_cells('I8:J8')
+    ws['I8'] = ""  # 保持空白
+    
+    # 統一套用第八列內容樣式 (文字靠上對齊，留出空間放圖)
+    align_top = Alignment(horizontal="center", vertical="top", wrap_text=True)
+    for rng in ['A8:B8', 'C8:D8', 'E8:H8', 'I8:J8', 'K8:L8']:
+        style_range(ws, rng, font=font_body, alignment=align_top, border=border_all)
+        
+    # 📸 精準嵌入圖 1：QR Code 屠宰日期照片 -> 錨定 A8
     if uploaded_qr_screenshot_1 is not None:
         pil_qr1 = PILImage.open(uploaded_qr_screenshot_1)
-        pil_qr1.thumbnail((140, 240)) # 縮放到適合 A8:B8 的寬度
+        pil_qr1.thumbnail((140, 240))
         img_stream_qr1 = io.BytesIO()
         pil_qr1.save(img_stream_qr1, format='PNG')
         img_stream_qr1.seek(0)
         obj_qr1 = OpenpyxlImage(img_stream_qr1)
         obj_qr1.anchor = 'A8'
-        # 稍微向下偏移避開文字（透過 openpyxl 錨點偏移設定）
         obj_qr1.drawing.top = 35 
         ws.add_image(obj_qr1)
         
-    # 嵌入【4. 國產生鮮禽肉溯源平台照片】到「屠宰單位欄位 (C8)」或是後方大區域
-    # 註：因為溯源平台的圖通常很大很長，我們可以把它跨區放到「原料肉名稱(E8)到分切日期(H8)」的虛擬起點，或是直接放在 C8。
-    # 這裡依照您的需求，將它精準放在「屠宰單位 (C8)」的起點往下延伸
+    # 📸 精準嵌入圖 2：國產生鮮禽肉溯源平台照片 -> 錨定 C8
     if uploaded_qr_screenshot_2 is not None:
         pil_qr2 = PILImage.open(uploaded_qr_screenshot_2)
-        pil_qr2.thumbnail((140, 240))
+        # 這裡可以稍微放大寬度，因為後面 E~H 已經合併空白了，圖往右邊拓寬也不會壓到文字
+        pil_qr2.thumbnail((250, 240)) 
         img_stream_qr2 = io.BytesIO()
         pil_qr2.save(img_stream_qr2, format='PNG')
         img_stream_qr2.seek(0)
         obj_qr2 = OpenpyxlImage(img_stream_qr2)
         obj_qr2.anchor = 'C8'
-        obj_qr2.drawing.top = 35  # 避開最上方的供應商文字
+        obj_qr2.drawing.top = 35  
         ws.add_image(obj_qr2)
+
 else:
-    ws.row_dimensions[7].height = 24
-    ws.row_dimensions[8].height = 24  # 沒有 QR 流程時，維持一般表格高度
+    # -----------------------------------------------------------------
+    # 【情境 B：沒有 QR 流程的格式 -> 完全恢復成您原本 100% 正確的格式】
+    # -----------------------------------------------------------------
+    headers_meat = ['屠宰日期', '屠宰單位', '原料肉名稱', '原料肉分切日期', '動物用藥檢驗', '微生物檢驗']
+    values_meat = [current_slaughter_date, current_slaughter_unit, meat_type, cut_date, drugs_check, bio_check]
+    col_pairs = [('A7:B7','A8:B8'), ('C7:D7','C8:D8'), ('E7:F7','E8:F8'), ('G7:H7','G8:H8'), ('I7:J7','I8:J8'), ('K7:L7','K8:L8')]
+
+    for i, (h_rng, v_rng) in enumerate(col_pairs):
+        ws.merge_cells(h_rng)
+        ws.merge_cells(v_rng)
+        ws[h_rng.split(':')] = headers_meat[i] 
+        ws[v_rng.split(':')] = values_meat[i] 
+        style_range(ws, h_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
+        style_range(ws, v_rng, font=font_body, alignment=align_center, border=border_all)
+    ws.row_dimensions.height = 24
+    ws.row_dimensions.height = 24
 
 
-# 區塊四：產品加工資料
+# =========================================================================
+# 區塊四：產品加工資料 (🌟 修正點 5：直接移除第 11 列，只保留第 10 列)
+# =========================================================================
 ws.merge_cells('A9:L9')
 ws['A9'] = "產品加工資料"
 style_range(ws, 'A9:L9', font=font_section, alignment=align_center, fill=fill_gray, border=border_all)
@@ -346,19 +381,24 @@ ws.row_dimensions.height = 22
 
 formatted_make_date = format_date_slash(make_date)
 formatted_valid_date = format_date_slash(valid_date)
+
+# 僅保留原第 10 列的規格、製造與有效日期資訊
 labels_v4 = [
-    ('A10:B10', '產品規格', 'C10:D10', ""), ('E10:F10', '製造日期', 'G10:H10', formatted_make_date), ('I10:J10', '有效日期', 'K10:L10', formatted_valid_date),
-    ('A11:B11', '產品批號', 'C11:D11', ""), ('E11:F11', '生產數量', 'G11:H11', ""), ('I11:J11', '備註說明', 'K11:L11', "")
+    ('A10:B10', '產品規格', 'C10:D10', "18KG/籃"),  # 可改為您的動態變數
+    ('E10:F10', '製造日期', 'G10:H10', formatted_make_date), 
+    ('I10:J10', '有效日期', 'K10:L10', formatted_valid_date)
 ]
+
 for lbl_rng, lbl_txt, val_rng, val_txt in labels_v4:
     ws.merge_cells(lbl_rng)
     ws.merge_cells(val_rng)
-    ws[lbl_rng.split(':')[0]] = lbl_txt  
-    ws[val_rng.split(':')[0]] = val_txt  
+    ws[lbl_rng.split(':')] = lbl_txt 
+    ws[val_rng.split(':')] = val_txt 
     style_range(ws, lbl_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     style_range(ws, val_rng, font=font_body, alignment=align_center, border=border_all)
+
 ws.row_dimensions.height = 24
-ws.row_dimensions.height = 24
+# 💡 註：原第 11 列代碼已直接移除，不再寫入任何 A11:L11 的儲存格與列高設定。
 
 # 區塊五：相關進貨單據 (🌟 指定列高 355.90)
 ws.merge_cells('A12:L12')
