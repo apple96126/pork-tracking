@@ -194,7 +194,7 @@ ws.merge_cells('A1:L1')
 ws['A1'] = "瓦城泰統集團\n加工肉品追蹤追溯表"
 ws['A1'].font = font_title
 ws['A1'].alignment = align_center
-ws.row_dimensions[1].height = 45
+ws.row_dimensions[1].height = 55  # 放大行距，確保兩行字完全看得到
 
 # 區塊一：基本料號資訊
 formatted_in_date = format_date_slash(in_date)
@@ -212,83 +212,57 @@ for lbl_rng, lbl_txt, val_rng, val_txt in labels_v1:
 ws.row_dimensions.height = 24
 ws.row_dimensions.height = 24
 
-# ==========================================
-# 🌟【雙軌分流】：區塊二與圖片並排邏輯
-# ==========================================
+# =========================================================================
+# 區塊二：產品包裝圖示 (🌟 雙軌分流 - 圖片位置大調整)
+# =========================================================================
 ws.merge_cells('A4:L4')
+ws['A4'] = "產品包裝圖示"
+style_range(ws, 'A4:L4', font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
+ws.row_dimensions[4].height = 20
+
 ws.merge_cells('A5:L5')
 style_range(ws, 'A5:L5', border=border_all)
 
+# 抓取產品包裝照片 (最多 3 張)
+uploaded_packs = []
+if uploaded_image_files:
+    for f in uploaded_image_files[:3]: 
+        uploaded_packs.append(f)
+
 if need_qr_flow:
-    # ----------------------------------------------------
-    # 【分流一：需要 QR Code 的排版程式碼】
-    # ----------------------------------------------------
-    ws['A4'] = "產品包裝與 QR 查驗圖示"
-    style_range(ws, 'A4:L4', font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
-    ws.row_dimensions[4].height = 20
-    ws.row_dimensions[5].height = 247.50  # 保持原設定高列高
+    # ---------【分流一：需要 QR Code 流程的區塊二】---------
+    ws.row_dimensions[5].height = 160.00  # 因為 QR 截圖往下移了，這裡列高可以縮小至 160
+    target_pack_cols = ['A5', 'E5', 'I5']  # 3張包裝圖橫向均分
     
-    # 整合所有要並排的照片 (最多 3 張包裝照片 + 2 張 QR 截圖，總共最多 5 張)
-    all_images_to_pack = []
-    if uploaded_image_files:
-        for f in uploaded_image_files[:3]: 
-            all_images_to_pack.append(f)
-    if uploaded_qr_screenshot_1 is not None:
-        all_images_to_pack.append(uploaded_qr_screenshot_1)
-    if uploaded_qr_screenshot_2 is not None:
-        all_images_to_pack.append(uploaded_qr_screenshot_2)
-        
-    # 設定 6 個等比例橫並排的虛擬欄位起點
-    target_columns = ['A5', 'C5', 'E5', 'G5', 'I5', 'K5']
-    
-    if all_images_to_pack:
-        for idx, img_file in enumerate(all_images_to_pack[:6]):
-            if idx < len(target_columns):
+    if uploaded_packs:
+        for idx, img_file in enumerate(uploaded_packs):
+            if idx < len(target_pack_cols):
                 pil_img = PILImage.open(img_file)
-                pil_img.thumbnail((150, 310))  # 保持寬 150，高度適應 247.50 的安全尺寸
-                
+                pil_img.thumbnail((150, 210))
                 img_stream = io.BytesIO()
                 pil_img.save(img_stream, format='PNG')
                 img_stream.seek(0)
-                
                 img_obj = OpenpyxlImage(img_stream)
-                img_obj.anchor = target_columns[idx]
+                img_obj.anchor = target_pack_cols[idx]
                 ws.add_image(img_obj)
     else:
-        ws['A5'] = "（現場未上傳包裝或查驗照片）"
+        ws['A5'] = "（現場未上傳包裝照片）"
         ws['A5'].font = font_body
         ws['A5'].alignment = align_center
-
 else:
-    # ----------------------------------------------------
-    # 【分流二：沒有 QR Code 的排版程式碼】
-    # ----------------------------------------------------
-    ws['A4'] = "產品包裝圖示"
-    style_range(ws, 'A4:L4', font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
-    ws.row_dimensions[4].height = 20
-    ws.row_dimensions[5].height = 150.00  # 縮小沒有 QR Code 流程時的格子高度，維持排版緊湊美觀
-    
-    # 只抓取產品包裝照片 (最多 3 張)
-    all_images_to_pack = []
-    if uploaded_image_files:
-        for f in uploaded_image_files[:3]: 
-            all_images_to_pack.append(f)
-            
-    # 調配 3 張圖在 12 欄中的均勻虛擬起點 (每隔 4 欄均分放一張)
-    target_columns_no_qr = ['A5', 'E5', 'I5']
-    
-    if all_images_to_pack:
-        for idx, img_file in enumerate(all_images_to_pack[:3]):
-            if idx < len(target_columns_no_qr):
+    # ---------【分流二：不需要 QR Code 流程的區塊二】---------
+    ws.row_dimensions[5].height = 150.00
+    target_pack_cols = ['A5', 'E5', 'I5']
+    if uploaded_packs:
+        for idx, img_file in enumerate(uploaded_packs):
+            if idx < len(target_pack_cols):
                 pil_img = PILImage.open(img_file)
-                pil_img.thumbnail((150, 200))  # 調降高度，適配 150.00 的列高
-                
+                pil_img.thumbnail((150, 200))
                 img_stream = io.BytesIO()
                 pil_img.save(img_stream, format='PNG')
                 img_stream.seek(0)
-                
                 img_obj = OpenpyxlImage(img_stream)
-                img_obj.anchor = target_columns_no_qr[idx]
+                img_obj.anchor = target_pack_cols[idx]
                 ws.add_image(img_obj)
     else:
         ws['A5'] = "（現場未上傳產品包裝照片）"
@@ -296,24 +270,73 @@ else:
         ws['A5'].alignment = align_center
 
 
-# 區塊三：原料肉資料
+# =========================================================================
+# 區塊三：原料肉資料 (🌟 核心改造：動態將 QR 截圖融合嵌入至此欄位)
+# =========================================================================
 ws.merge_cells('A6:L6')
 ws['A6'] = "原料肉資料"
 style_range(ws, 'A6:L6', font=font_section, alignment=align_center, fill=fill_gray, border=border_all)
-ws.row_dimensions.height = 22
+ws.row_dimensions[6].height = 22
 
 headers_meat = ['屠宰日期', '屠宰單位', '原料肉名稱', '原料肉分切日期', '動物用藥檢驗', '微生物檢驗']
-values_meat = [slaughter_date, slaughter_unit, meat_type, cut_date, drugs_check, bio_check]
+
+# 自動連動數據：屠宰單位直接帶入選擇的供應商名稱
+current_slaughter_unit = supplier if supplier else slaughter_unit
+# 屠宰日期：如果有填就用填的，沒有就預設帶進貨日(可依您網頁邏輯微調)
+current_slaughter_date = format_date_slash(in_date) 
+
+values_meat = [current_slaughter_date, current_slaughter_unit, meat_type, cut_date, drugs_check, bio_check]
 col_pairs = [('A7:B7','A8:B8'), ('C7:D7','C8:D8'), ('E7:F7','E8:F8'), ('G7:H7','G8:H8'), ('I7:J7','I8:J8'), ('K7:L7','K8:L8')]
+
+# 寫入原料肉文字表頭與內容
 for i, (h_rng, v_rng) in enumerate(col_pairs):
     ws.merge_cells(h_rng)
     ws.merge_cells(v_rng)
-    ws[h_rng.split(':')[0]] = headers_meat[i]  
-    ws[v_rng.split(':')[0]] = values_meat[i]  
+    ws[h_rng.split(':')[0]] = headers_meat[i] 
+    ws[v_rng.split(':')[0]] = values_meat[i] 
     style_range(ws, h_rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
-    style_range(ws, v_rng, font=font_body, alignment=align_center, border=border_all)
-ws.row_dimensions.height = 24
-ws.row_dimensions.height = 24
+    
+    # 🌟 為了讓圖片有空間放，如果是 QR 流程，文字靠上方對齊，否則維持居中
+    if need_qr_flow:
+        style_range(ws, v_rng, font=font_body, alignment=Alignment(horizontal="center", vertical="top", wrap_text=True), border=border_all)
+    else:
+        style_range(ws, v_rng, font=font_body, alignment=align_center, border=border_all)
+
+# 🌟【動態列高分流】：控制第 8 欄的內容高度
+if need_qr_flow:
+    ws.row_dimensions[7].height = 24
+    ws.row_dimensions[8].height = 280.00  # 大幅拉高第 8 行，完美塞下下方並排的查驗大圖
+    
+    # 嵌入【3. QR Code 屠宰日期照片】到「屠宰日期欄位 (A8)」
+    if uploaded_qr_screenshot_1 is not None:
+        pil_qr1 = PILImage.open(uploaded_qr_screenshot_1)
+        pil_qr1.thumbnail((140, 240)) # 縮放到適合 A8:B8 的寬度
+        img_stream_qr1 = io.BytesIO()
+        pil_qr1.save(img_stream_qr1, format='PNG')
+        img_stream_qr1.seek(0)
+        obj_qr1 = OpenpyxlImage(img_stream_qr1)
+        obj_qr1.anchor = 'A8'
+        # 稍微向下偏移避開文字（透過 openpyxl 錨點偏移設定）
+        obj_qr1.drawing.top = 35 
+        ws.add_image(obj_qr1)
+        
+    # 嵌入【4. 國產生鮮禽肉溯源平台照片】到「屠宰單位欄位 (C8)」或是後方大區域
+    # 註：因為溯源平台的圖通常很大很長，我們可以把它跨區放到「原料肉名稱(E8)到分切日期(H8)」的虛擬起點，或是直接放在 C8。
+    # 這裡依照您的需求，將它精準放在「屠宰單位 (C8)」的起點往下延伸
+    if uploaded_qr_screenshot_2 is not None:
+        pil_qr2 = PILImage.open(uploaded_qr_screenshot_2)
+        pil_qr2.thumbnail((140, 240))
+        img_stream_qr2 = io.BytesIO()
+        pil_qr2.save(img_stream_qr2, format='PNG')
+        img_stream_qr2.seek(0)
+        obj_qr2 = OpenpyxlImage(img_stream_qr2)
+        obj_qr2.anchor = 'C8'
+        obj_qr2.drawing.top = 35  # 避開最上方的供應商文字
+        ws.add_image(obj_qr2)
+else:
+    ws.row_dimensions[7].height = 24
+    ws.row_dimensions[8].height = 24  # 沒有 QR 流程時，維持一般表格高度
+
 
 # 區塊四：產品加工資料
 ws.merge_cells('A9:L9')
