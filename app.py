@@ -290,9 +290,8 @@ if need_qr_flow:
     ws.merge_cells('A7:B7'); ws['A7'] = '屠宰日期'
     ws.merge_cells('C7:D7'); ws['C7'] = '屠宰單位'
     ws.merge_cells('E7:H7'); ws['E7'] = ""
-    ws.merge_cells('I7:J7'); ws['I7'] = ""
-    ws.merge_cells('K7:L7'); ws['K7'] = '微生物檢驗'
-    
+    ws.merge_cells('I7:L7'); ws['I7'] = ""
+
     for rng in ['A7:B7', 'C7:D7', 'E7:H7', 'I7:J7', 'K7:L7']:
         style_range(ws, rng, font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     ws.row_dimensions.height = 24
@@ -301,8 +300,8 @@ if need_qr_flow:
     ws.merge_cells('A8:B8'); ws['A8'] = current_slaughter_date
     ws.merge_cells('C8:D8'); ws['C8'] = current_slaughter_unit
     ws.merge_cells('E8:H8'); ws['E8'] = ""
-    ws.merge_cells('I8:J8'); ws['I8'] = ""
-    ws.merge_cells('K8:L8'); ws['K8'] = bio_check
+    ws.merge_cells('I8:L8'); ws['I8'] = ""
+    ws.row_dimensions.height = 396.75  # 🎯 修正點：有 QR code 時，第 8 列調整為 396.75 的行距
     
     align_top = Alignment(horizontal="center", vertical="top", wrap_text=True)
     for rng in ['A8:B8', 'C8:D8', 'E8:H8', 'I8:J8', 'K8:L8']:
@@ -358,27 +357,6 @@ if need_qr_flow:
         style_range(ws, val_rng, font=font_body, alignment=align_center, border=border_all)
     ws.row_dimensions.height = 24
 
-    # =========================================================================
-    # 區塊五：相關進貨單據 (🌟 有 QR 流程：此時進貨單據移至第 11 列，高度調為 396.75)
-    # =========================================================================
-    ws.merge_cells('A11:L11')
-    style_range(ws, 'A11:L11', border=border_all)
-    ws.row_dimensions.height = 396.75  # 🎯 修正點：有 QR code 時，第 11 列調整為 396.75 的行距
-    
-    if uploaded_receipt_file is not None:
-        pil_receipt = PILImage.open(uploaded_receipt_file)
-        pil_receipt.thumbnail((750, 480))
-        img_byte_arr2 = io.BytesIO()
-        pil_receipt.save(img_byte_arr2, format='PNG')
-        img_byte_arr2.seek(0)
-        receipt_obj = OpenpyxlImage(img_byte_arr2)
-        receipt_obj.anchor = 'A11'
-        ws.add_image(receipt_obj)
-    else:
-        ws['A11'] = "（現場未上傳單據照片）"
-        ws['A11'].font = font_body
-        ws['A11'].alignment = align_center
-
 else:
     # -----------------------------------------------------------------
     # 【情境 B：沒有 QR 流程】完美還原成對照圖片中的 6 到 11 列完整格式
@@ -430,24 +408,24 @@ else:
     ws.row_dimensions.height = 24
     ws.row_dimensions.height = 24
 
-    # =========================================================================
-    # 區塊五：相關進貨單據 (沒有 QR 流程：維持在第 12, 13 列)
-    # =========================================================================
+        # 區塊五：相關進貨單據 (🌟 指定列高 355.90)
     ws.merge_cells('A12:L12')
     ws['A12'] = "進貨單據"
     style_range(ws, 'A12:L12', font=font_grid_header, alignment=align_center, fill=fill_gray, border=border_all)
     ws.row_dimensions.height = 20
-
+    
     ws.merge_cells('A13:L13')
     style_range(ws, 'A13:L13', border=border_all)
-    ws.row_dimensions.height = 355.90
+    ws.row_dimensions[13].height = 355.90  # 修正：精確指定第 13 行的列高
     
     if uploaded_receipt_file is not None:
         pil_receipt = PILImage.open(uploaded_receipt_file)
         pil_receipt.thumbnail((750, 450))
+        
         img_byte_arr2 = io.BytesIO()
         pil_receipt.save(img_byte_arr2, format='PNG')
         img_byte_arr2.seek(0)
+        
         receipt_obj = OpenpyxlImage(img_byte_arr2)
         receipt_obj.anchor = 'A13'
         ws.add_image(receipt_obj)
@@ -455,6 +433,7 @@ else:
         ws['A13'] = "（現場未上傳單據照片）"
         ws['A13'].font = font_body
         ws['A13'].alignment = align_center
+
 
 # 匯出與下載處理
 excel_data = io.BytesIO()
